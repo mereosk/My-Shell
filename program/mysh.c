@@ -8,7 +8,7 @@
 int main(int argc, char** argv) {
 
     List mylist = list_create(NULL);
-    char yo[20];
+    char yo[30];
     while(1) {
         printf("\nin-mysh-now:>");
         scanf("%s", yo);
