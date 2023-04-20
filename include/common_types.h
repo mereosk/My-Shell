@@ -1,4 +1,4 @@
-#pragma once // #include το πολύ μία φορά
+#pragma once // #include once
 
 // Τύποι που χρησιμοποιούνται σε πολλά modules
 

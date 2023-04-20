@@ -10,7 +10,7 @@ CFLAGS = -Wall  -g -I$(INCLUDE)
 LDFLAGS = 
 
 # Αρχεία .o
-OBJS = $(PROGRAM)/mysh.o $(MODULES)/ADTList.o
+OBJS = $(PROGRAM)/mysh.o $(MODULES)/ADTList.o $(MODULES)/helping_funcs.o $(MODULES)/bash_interface.o
 
 # Το εκτελέσιμο πρόγραμμα
 EXEC = $(PROGRAM)/mysh
