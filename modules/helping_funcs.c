@@ -10,33 +10,60 @@
 
 
 void parse(char *inputCommandWhole){
-    char *separateCommand;
+    char *separateCommand, *token, *firstWord, *SCommandCopy;
+    char *savePtrFW;
+    char *kwCreateAlias="createalias";
+    char *kwDestroyAlias="destroyalias";
+    char *kwHistory="myHistory";
     char *restSC = inputCommandWhole;
-    char *token;
     char *remStr=malloc(256 * sizeof(*remStr));
     char *command = malloc(20 * sizeof(*command));
     int fd;
 
-    strcpy(restSC, inputCommandWhole);
 
     // When the shell sees a semicolon then it's treated
     // as a command separator
     while((separateCommand = strtok_r(restSC, ";", &restSC) )) {
         printf("Separate command is %s\n",separateCommand);
 
-        strcpy(remStr, separateCommand);
-        token = strtok(separateCommand, ">");
-        token = trim_whitespace(token);
+        // Take the first word of the separate command(separated with semicolomn)
+        // int separateCommandLength = strlen(separateCommand);
+        // SCommandCopy = (char *)calloc(separateCommandLength+1, sizeof(char));
+        // strncpy(SCommandCopy, separateCommand, separateCommandLength);
+        SCommandCopy = separateCommand;
+        firstWord = strtok_r(SCommandCopy, " ", &savePtrFW);
 
-        // If the token is a substring of separateCommand then
-        // the redirection exists
-        if(strcmp(token, remStr)) {
-            strcpy(command, token);
-            printf("Command is %s\n",command);
+        printf("The first command is %s\n", firstWord);
+
+        // Check if the first word is the keyword for creating an alias
+        if(strcmp(firstWord, kwCreateAlias)==0){
+          printf("create alias\n");
+        }   
+        else if(strcmp(firstWord, kwDestroyAlias)==0) {
+          // Check if the first word is the keyword for destroying an alias
+          printf("destroy alias\n");
+        }   
+        else if((strcmp(firstWord, kwHistory)==0)) {
+          // Check if the first word is the keyword for showing the last 20 commands
+          printf("show the history\n");
+        }   
+        else if(separateCommand[0]=='!') {
+          // If the command has the form "!number" then show the number'th command
+          printf("print a specific command\n");
         }
-            token = strtok(0, ">");
-            if(token == NULL)
-                printf("IM HERE");
+        // strcpy(remStr, separateCommand);
+        // token = strtok(separateCommand, ">");
+        // token = trim_whitespace(token);
+
+        // // If the token is a substring of separateCommand then
+        // // the redirection exists
+        // if(strcmp(token, remStr)) {
+        //     strcpy(command, token);
+        //     printf("Command is %s\n",command);
+        // }
+        //     token = strtok(0, ">");
+        //     if(token == NULL)
+        //         printf("IM HERE");
         // // Checks for delimiter
         // while (token != 0) {
         //     printf("%s\n", token);
