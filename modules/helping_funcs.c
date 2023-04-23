@@ -9,8 +9,9 @@
 #include "bash_interface.h"
 
 
-void parse(char *inputCommandWhole){
+void parse(char *inputCommandWhole , Vector historyVector){
     char *separateCommand, *token, *firstWord, *SCommandCopy;
+    char *designator;
     char *savePtrFW;
     char *kwCreateAlias="createalias";
     char *kwDestroyAlias="destroyalias";
@@ -18,6 +19,8 @@ void parse(char *inputCommandWhole){
     char *restSC = inputCommandWhole;
     char *remStr=malloc(256 * sizeof(*remStr));
     char *command = malloc(20 * sizeof(*command));
+    int intDesignator;
+    // char *SCommandCopy = malloc(256 * sizeof(*SCommandCopy));
     int fd;
 
 
@@ -27,13 +30,13 @@ void parse(char *inputCommandWhole){
         printf("Separate command is %s\n",separateCommand);
 
         // Take the first word of the separate command(separated with semicolomn)
-        // int separateCommandLength = strlen(separateCommand);
-        // SCommandCopy = (char *)calloc(separateCommandLength+1, sizeof(char));
-        // strncpy(SCommandCopy, separateCommand, separateCommandLength);
-        SCommandCopy = separateCommand;
+        int separateCommandLength = strlen(separateCommand);
+        SCommandCopy = (char *)calloc(separateCommandLength+1, sizeof(char));
+        strncpy(SCommandCopy, separateCommand, separateCommandLength);
         firstWord = strtok_r(SCommandCopy, " ", &savePtrFW);
 
         printf("The first command is %s\n", firstWord);
+        printf("Separate command is %s\n",separateCommand);
 
         // Check if the first word is the keyword for creating an alias
         if(strcmp(firstWord, kwCreateAlias)==0){
@@ -45,12 +48,37 @@ void parse(char *inputCommandWhole){
         }   
         else if((strcmp(firstWord, kwHistory)==0)) {
           // Check if the first word is the keyword for showing the last 20 commands
-          printf("show the history\n");
+          printf("-----------------------\nTHE HISTORY OF MYSH COMMANDS :\n");
+          vector_print(historyVector);
+          printf("-----------------------\n");
         }   
         else if(separateCommand[0]=='!') {
           // If the command has the form "!number" then show the number'th command
           printf("print a specific command\n");
+          // Take string that follows the ! 
+          char *eventAfter=&separateCommand[1];
+          printf("String is %s\n",eventAfter);
+          // Check what the designator is
+          designator=strtok(eventAfter, " ");
+          // printf("designator is %s\n",designator);
+          if((intDesignator=atoi(designator))){
+            printf("int designator is %d\n",intDesignator);
+            // !n refers to command line n
+            if(intDesignator>0) {
+              printf("COMMAND IS %s\n",(char *)vector_get_at(historyVector, intDesignator-1));
+            }
+            else{
+              // !-n refers to command n lines back
+              printf("COMMAND IS %s\n",(char *)vector_get_at(historyVector, vector_size(historyVector)-abs(intDesignator)-1));
+            }
+          }
+          else {
+            printf("designator is %s\n",designator);
+          }
         }
+
+        free(SCommandCopy);
+
         // strcpy(remStr, separateCommand);
         // token = strtok(separateCommand, ">");
         // token = trim_whitespace(token);

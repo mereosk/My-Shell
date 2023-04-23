@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
             puts(trimmedInputBuffer);
             // printf("size of the array is %d", sizeof(inputBuffer[0]));
             // Parse the input
-            parse(trimmedInputBuffer);
+            parse(trimmedInputBuffer, historyVector);
         }
     }
 
