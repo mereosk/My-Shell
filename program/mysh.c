@@ -30,8 +30,12 @@ int main(int argc, char** argv) {
         if( fgets (inputBuffer, 256, stdin) != NULL ) {
             // First trim all the whitespace
             char *trimmedInputBuffer = trim_whitespace(inputBuffer);
-            // Pass the command into the history vector
-            vector_insert_last(historyVector, strdup(trimmedInputBuffer));
+            // Pass the command into the history vector. However don't 
+            // insert it if the previous command is the same (There's no reason)
+            if(vector_get_at(historyVector, vector_size(historyVector)-1)==NULL || \
+            strcmp(trimmedInputBuffer, vector_get_at(historyVector, vector_size(historyVector)-1))!=0)
+                vector_insert_last(historyVector, strdup(trimmedInputBuffer));
+               
             
             // Check if the user wants to exit the shell
             if(strcmp(trimmedInputBuffer,"exit")==0)

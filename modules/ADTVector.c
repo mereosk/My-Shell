@@ -50,7 +50,10 @@ int vector_size(Vector vec) {
 }
 
 Pointer vector_get_at(Vector vec, int pos) {
-	assert(pos >= 0 && pos < vec->size);	// LCOV_EXCL_LINE (αγνοούμε το branch από τα coverage reports, είναι δύσκολο να τεστάρουμε το false γιατί θα κρασάρει το test)
+	// assert(pos >= 0 && pos < vec->size);	// LCOV_EXCL_LINE (αγνοούμε το branch από τα coverage reports, είναι δύσκολο να τεστάρουμε το false γιατί θα κρασάρει το test)
+	// If the position is out of bounds the return NULL
+	if(pos<0 || pos> vec->size)
+		return NULL;
 
 	return vec->array[pos].value;
 }
@@ -104,6 +107,16 @@ Pointer vector_find(Vector vec, Pointer value, CompareFunc compare) {
 	for (int i = 0; i < vec->size; i++)
 		if (compare(vec->array[i].value, value) == 0)
 			return vec->array[i].value;		// βρέθηκε
+
+	return NULL;				// δεν υπάρχει
+}
+
+Pointer reverse_vector_find(Vector vec, Pointer value, CompareFunc compare) {
+	// Διάσχιση του vector
+	for (int i = (vec->size-2); i>-1 ; i--) {
+		if (compare(vec->array[i].value, value) == 0)
+			return vec->array[i].value;		// βρέθηκε
+	}
 
 	return NULL;				// δεν υπάρχει
 }

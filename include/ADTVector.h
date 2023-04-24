@@ -58,6 +58,9 @@ void vector_set_at(Vector vec, int pos, Pointer value);
 
 Pointer vector_find(Vector vec, Pointer value, CompareFunc compare);
 
+// Same as the vector_find, but it searches backwards
+Pointer reverse_vector_find(Vector vec, Pointer value, CompareFunc compare); 
+
 // Αλλάζει τη συνάρτηση που καλείται σε κάθε αφαίρεση/αντικατάσταση στοιχείου σε
 // destroy_value. Επιστρέφει την προηγούμενη τιμή της συνάρτησης.
 
