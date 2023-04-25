@@ -12,6 +12,8 @@ int starts_with(Pointer a,Pointer b){
     return strncmp(a, b, strlen(b));
 }
 
+
+
 void parse(char *inputCommandWhole , Vector historyVector){
     char *separateCommand, *token, *firstWord, *SCommandCopy;
     char *designator;
@@ -39,6 +41,7 @@ void parse(char *inputCommandWhole , Vector historyVector){
         firstWord = strtok_r(SCommandCopy, " ", &savePtrFW);
 
         printf("The first command is %s\n", firstWord);
+        // printf("Rest is %s\n", savePtrFW);
         printf("Separate command is %s\n",separateCommand);
 
         // Check if the first word is the keyword for creating an alias
@@ -58,19 +61,15 @@ void parse(char *inputCommandWhole , Vector historyVector){
         else if(separateCommand[0]=='!') {
           // If the command has the form "!something" then its an event designator
           char *subValue=NULL;
-          printf("print a specific command\n");
           // Take string that follows the ! 
-          char *eventAfter=&separateCommand[1];
-          printf("String is %s\n",eventAfter);
+          char *eventAfter=strdup(&separateCommand[1]);
           // Check what the designator is
           if((intDesignator=begins_with_number(eventAfter))!=0) {
-            printf("int designator is %d\n",intDesignator);
             if(intDesignator>0) {
               // !n refers to command line n
 
               subValue = vector_get_at(historyVector, intDesignator-1);
               if(subValue != NULL) {
-                printf("COMMAND IS %s\n", subValue);
                 // Substitude the last command that is !n with the command in line n
                 // However if the command is the same than the previous one, keep only one
                 if(strcmp(subValue, vector_get_at(historyVector, vector_size(historyVector)-2))==0)
@@ -90,7 +89,6 @@ void parse(char *inputCommandWhole , Vector historyVector){
 
               subValue = (char *)vector_get_at(historyVector, vector_size(historyVector)-abs(intDesignator)-1);
               if(subValue != NULL) {
-                printf("COMMAND IS %s\n",subValue);
                 // Substitude the last command that is !-n with the command n lines back
                 // However if the command is the same than the previous one, keep only one
                 if(strcmp(subValue, vector_get_at(historyVector, vector_size(historyVector)-2))==0)
@@ -110,7 +108,6 @@ void parse(char *inputCommandWhole , Vector historyVector){
             // !! refer to the previous command, same as !-1
             subValue = (char *)vector_get_at(historyVector, vector_size(historyVector)-2);
             // !-n refers to command n lines back
-            printf("COMMAND IS %s\n",subValue);
             // Substitude the last command that is !-n with the command n lines back
             // However if the command is the same than the previous one, keep only one
             if(strcmp(subValue, vector_get_at(historyVector, vector_size(historyVector)-2))==0)
@@ -124,10 +121,8 @@ void parse(char *inputCommandWhole , Vector historyVector){
 
             // Firstly take the first string using strtok
             char *strToSearch = strtok(eventAfter, " ");
-            printf("The string that im searching is %s\n", strToSearch);
             subValue=(char *)reverse_vector_find(historyVector, strToSearch, starts_with);
             if(subValue != NULL) {
-              printf("WE FOUND THE STIRNG %s\n",subValue);
               // Substitude the last command that is !-n with the command n lines back
               // However if the command is the same than the previous one, keep only one
               if(strcmp(subValue, vector_get_at(historyVector, vector_size(historyVector)-2))==0)
@@ -143,19 +138,23 @@ void parse(char *inputCommandWhole , Vector historyVector){
             }
           }
           
-          // printf("SUBVALUE IS %s and %s\n", subValue, separateCommand);
-          // // If the substitution went through concatenate the subbed command
-          // // with the files
-          
-          // if(subValue != NULL) {
-          //   char *testStr=calloc((256),sizeof(*testStr));
-          //   strncpy(testStr, subValue, strlen(subValue));
-          //   strcat(testStr, separateCommand);
-          //   printf("WHOLE NEW VALUE IS %s\n", testStr);
-          // }
-          
+          // If the substitution went through concatenate the subbed command
+          // with the rest arguments
+          if(subValue != NULL) {
+            char *wholeStr=calloc((256),sizeof(*wholeStr));
+            strncpy(wholeStr, subValue, strlen(subValue));
+            char *restArgs = rest_args(separateCommand);
+            // If rest arguments is not NULL then it hace arguments and we 
+            // have to concatenate them
+            if(restArgs != NULL) {
+              strcat(wholeStr, restArgs);
+            }
+            // If restArgs is NULL it doesn't have other arguments
+            printf("%s\n", wholeStr);
+            free(wholeStr);
+          }
+          free(eventAfter);
         }
-
         free(SCommandCopy);
 
         // strcpy(remStr, separateCommand);
@@ -260,4 +259,26 @@ int begins_with_number(char *str){
   }
   free(copyStr);
   return 0;
+}
+
+char *rest_args(char *str) {
+  char *strToReturn = str;
+  int len = strlen(strToReturn);
+
+  int count=0;
+  // Skip the first characters
+  while(*strToReturn++ != ' '){
+    // If the count is greater than length, the command does not
+    // have arguments so return NULL
+    if(count>len)
+      return NULL;
+    count++;
+  }
+  printf("Str is %s\n", strToReturn);
+  // Skip spaces
+  while(*strToReturn++ == ' ');
+  // Insert the space and the first char of the argument in the return string
+  strToReturn-=2;
+
+  return strToReturn;
 }
