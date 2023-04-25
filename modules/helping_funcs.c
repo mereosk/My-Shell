@@ -14,7 +14,6 @@ int starts_with(Pointer a,Pointer b){
 
 void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     char *separateCommand, *token, *firstWord, *SCommandCopy;
-    char *designator;
     char *savePtrFW;
     char *kwCreateAlias="createalias";
     char *kwDestroyAlias="destroyalias";
@@ -53,6 +52,10 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         }   
         else if(strcmp(firstWord, kwDestroyAlias)==0) {
           // Check if the first word is the keyword for destroying an alias
+          if(rest_args(separateCommand) == NULL) 
+            printf("\n-mysh: destroyalias: Correct usage: 'destroyalias myhome'\n");
+          else
+            destroy_alias(aliasMap, rest_args(separateCommand));
           printf("destroy alias\n");
         }   
         else if(strcmp(firstWord, kwAlias)==0) {

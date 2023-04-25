@@ -6,3 +6,5 @@ void output_redirection(char *command, int outputFD);
 
 // Creates an alias
 bool create_alias(Map map, char *command);
+
+void destroy_alias(Map map, char *command);
