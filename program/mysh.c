@@ -6,6 +6,7 @@
 #include "ADTList.h"
 #include "helping_funcs.h"
 #include "ADTVector.h"
+#include "ADTMap.h"
 
 void cyan() {
   printf("\033[1;36m");
@@ -19,7 +20,12 @@ int main(int argc, char** argv) {
 
     int myshHistoryDF;
     List mylist = list_create(NULL);
+    // Initialise the history vector
     Vector historyVector = vector_create(0,  free);
+    // Initialise the map that will keep the aliases
+    Map aliasMap = map_create(str_compare, free, free);
+    map_set_hash_function(aliasMap, hash_string);
+
     char *inputBuffer = malloc(256 * sizeof(*inputBuffer));
 
     while(1) {
@@ -45,14 +51,15 @@ int main(int argc, char** argv) {
             puts(trimmedInputBuffer);
             // printf("size of the array is %d", sizeof(inputBuffer[0]));
             // Parse the input
-            parse(trimmedInputBuffer, historyVector);
+            parse(trimmedInputBuffer, historyVector, aliasMap);
         }
     }
 
     vector_print(historyVector);
 
-    // Free the allocated spaces
+    // Free the allocated spaces left
     free(inputBuffer);
+    map_destroy(aliasMap);
     list_destroy(mylist);
     vector_destroy(historyVector);
 }

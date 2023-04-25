@@ -6,21 +6,20 @@
 
 
 #include "helping_funcs.h"
-#include "bash_interface.h"
 
+// Compare function that returns true if sting a starts with b
 int starts_with(Pointer a,Pointer b){
     return strncmp(a, b, strlen(b));
 }
 
-
-
-void parse(char *inputCommandWhole , Vector historyVector){
+void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     char *separateCommand, *token, *firstWord, *SCommandCopy;
     char *designator;
     char *savePtrFW;
     char *kwCreateAlias="createalias";
     char *kwDestroyAlias="destroyalias";
     char *kwHistory="history";
+    char *kwAlias="alias";
     char *restSC = inputCommandWhole;
     char *remStr=malloc(256 * sizeof(*remStr));
     char *command = malloc(20 * sizeof(*command));
@@ -46,11 +45,20 @@ void parse(char *inputCommandWhole , Vector historyVector){
 
         // Check if the first word is the keyword for creating an alias
         if(strcmp(firstWord, kwCreateAlias)==0){
-          printf("create alias\n");
+          printf("create alias the separate command is %s\n", rest_args(separateCommand));
+          if(rest_args(separateCommand) == NULL) 
+            printf("\n-mysh: createalias: Correct usage: 'createalias command \"cd changed command\"'\n");
+          else
+            create_alias(aliasMap, rest_args(separateCommand));
         }   
         else if(strcmp(firstWord, kwDestroyAlias)==0) {
           // Check if the first word is the keyword for destroying an alias
           printf("destroy alias\n");
+        }   
+        else if(strcmp(firstWord, kwAlias)==0) {
+          // Check if the first word is the keyword for destroying an alias
+          printf("Alias\n");
+          map_print(aliasMap);
         }   
         else if((strcmp(firstWord, kwHistory)==0)) {
           // Check if the first word is the keyword for showing the last 20 commands
@@ -281,4 +289,8 @@ char *rest_args(char *str) {
   strToReturn-=2;
 
   return strToReturn;
+}
+
+int str_compare(Pointer a,Pointer b){
+    return strcmp(a, b);
 }

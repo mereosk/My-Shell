@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <string.h>
 
 #include "bash_interface.h"
 
@@ -36,4 +37,33 @@ void output_redirection(char *command, int outputFD){
         perror("execlp");
         exit(4);
     }
+}
+
+bool create_alias(Map map, char *command) {
+    char *tempStr = command;
+    char *key, *value;
+
+    // First character is space (from parsing)
+    tempStr++;
+    printf("MY COMMAND IS %s %s\n", command, tempStr);
+    // First token is the key
+    key = strtok(tempStr, "\"");
+    // printf("length is %d",strlen(key));
+    if(key[strlen(key)-1]=' ')
+        key[strlen(key)-1]='\0';
+
+    value = strtok(NULL, "\"");
+    // Value mush have "" wrapping its name
+    // if(value[0]!='\"' || value[strlen(value-1)]!='\"') {
+    //     printf("\n-mysh: createalias: Correct usage: 'createalias command \"cd changed command\"'\n");
+    //     return false;
+    // }
+    printf("Value is %s\n", value);
+    // Remove the quotes
+    // value++; value[strlen(value-1)]='\0';
+    // Insert into the alias vector
+    map_insert(map, strdup(key), strdup(value));
+
+    //printf("\n-mysh: !%d: event not found\n", intDesignator);
+    return true;
 }
