@@ -4,12 +4,67 @@
 #include <ctype.h>
 #include <fcntl.h>
 
-
 #include "helping_funcs.h"
+
+#define START 0
+#define HAVECOMMAND 1
+#define OUTREDIRECT 2
 
 // Compare function that returns true if sting a starts with b
 int starts_with(Pointer a,Pointer b){
     return strncmp(a, b, strlen(b));
+}
+
+// Check if a string is an alias
+bool check_alias(Map map, char *str) {
+  return (map_find(map, str)!=NULL) ? true:false;
+}
+
+// You must free the result if result is non-NULL.
+char *str_replace(char *orig, char *rep, char *with) {
+    char *result; // the return string
+    char *ins;    // the next insert point
+    char *tmp;    // varies
+    int len_rep;  // length of rep (the string to remove)
+    int len_with; // length of with (the string to replace rep with)
+    int len_front; // distance between rep and end of last rep
+    int count;    // number of replacements
+
+    // sanity checks and initialization
+    if (!orig || !rep)
+        return NULL;
+    len_rep = strlen(rep);
+    if (len_rep == 0)
+        return NULL; // empty rep causes infinite loop during count
+    if (!with)
+        with = "";
+    len_with = strlen(with);
+
+    // count the number of replacements needed
+    ins = orig;
+    for (count = 0; tmp = strstr(ins, rep); ++count) {
+        ins = tmp + len_rep;
+    }
+
+    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+
+    if (!result)
+        return NULL;
+
+    // first time through the loop, all the variable are set correctly
+    // from here on,
+    //    tmp points to the end of the result string
+    //    ins points to the next occurrence of rep in orig
+    //    orig points to the remainder of orig after "end of rep"
+    while (count--) {
+        ins = strstr(orig, rep);
+        len_front = ins - orig;
+        tmp = strncpy(tmp, orig, len_front) + len_front;
+        tmp = strcpy(tmp, with) + len_with;
+        orig += len_front + len_rep; // move to next "end of rep"
+    }
+    strcpy(tmp, orig);
+    return result;
 }
 
 void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
@@ -19,6 +74,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     char *kwDestroyAlias="destroyalias";
     char *kwHistory="history";
     char *kwAlias="alias";
+    char *sepCommandReplaced= NULL;
     char *restSC = inputCommandWhole;
     char *remStr=malloc(256 * sizeof(*remStr));
     char *command = malloc(20 * sizeof(*command));
@@ -31,15 +87,20 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     // as a command separator
     while((separateCommand = strtok_r(restSC, ";", &restSC) )) {
         printf("Separate command is %s\n",separateCommand);
+        separateCommand = trim_whitespace(separateCommand);
 
-        // Take the first word of the separate command(separated with semicolomn)
+        // Take the first word of the separate command(separated with semicolumn)
         int separateCommandLength = strlen(separateCommand);
         SCommandCopy = (char *)calloc(separateCommandLength+1, sizeof(char));
         strncpy(SCommandCopy, separateCommand, separateCommandLength);
         firstWord = strtok_r(SCommandCopy, " ", &savePtrFW);
 
         printf("The first command is %s\n", firstWord);
-        // printf("Rest is %s\n", savePtrFW);
+        // Check if the first word is an alias
+        // if(check_alias(aliasMap, firstWord)) {
+        //   char *sepCommandReplaced = str_replace(separateCommand, firstWord, map_node_value(aliasMap, map_find_node(aliasMap, firstWord)));
+        //   printf("IT IS AN ALIAS and the replaced string is %s\n", sepCommandReplaced);
+        // }
         printf("Separate command is %s\n",separateCommand);
 
         // Check if the first word is the keyword for creating an alias
@@ -168,6 +229,115 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         }
         free(SCommandCopy);
 
+        // Now we will parse the command using the logic of
+        // state machines.
+        printf("NOW STARTS THE PARSTING\n\n");
+        int k=0, countCommands=0;
+        char *strKeeper=calloc(256, sizeof(*strKeeper));
+        char *commandSave=calloc(256, sizeof(*commandSave));
+        // The state of the machine starts expecting a command
+        int state = START;
+        // Vector will be for keeping the arguments
+        Vector argsVec = vector_create(0, free);
+        while(1) {
+          // printf("char %c%s", separateCommand[k], separateCommand);
+          strKeeper[countCommands]=separateCommand[k];
+          // com1 
+          if(separateCommand[k] == '\0') {
+            // If the state is command it is -mysh command
+            if(state == START) {
+              printf("IMG HERE\n");
+              // Insert the command in the command vector
+              // vector_insert_last(commandVec, strdup(strKeeper));
+              execute_command(strKeeper, argsVec);
+              break;
+            }
+            else if(state == HAVECOMMAND) {
+              printf("argument have command\n");
+              // Insert the last argument in the vector and execute the command
+              vector_insert_last(argsVec, strdup(strKeeper));
+              execute_command(commandSave, argsVec);
+              break;
+            }
+            else if(state == OUTREDIRECT) {
+              printf("Im in out redirect\n");
+              break;
+            }
+          }
+          else if(separateCommand[k] == ' ') {
+            // Without the space
+            strKeeper[countCommands] = '\0';
+            // Check if the stirng in strKeeper is a command
+            if(state == START) {
+              // Save the command and search for arguments
+              strcpy(commandSave, strKeeper);
+              printf("Command save is %s\n", commandSave);
+              // Change state to havecommand to search for arguments
+              state = HAVECOMMAND;
+              // Skip the spaces
+              while(separateCommand[k] == ' ') {
+                k++;
+              }
+            }
+            else if(state == HAVECOMMAND) {
+              // Insert the argument in the vector
+              vector_insert_last(argsVec, strdup(strKeeper));
+              // Skip the spaces
+              while(separateCommand[k] == ' ') {
+                k++;
+              }
+            }
+            
+            // Make the counter 0 in order to continue with the arguments
+            // if they exist
+            countCommands=0;
+            continue;
+          }
+          else if(separateCommand[k] == '>') {
+            strKeeper[countCommands] = '\0';
+            if(state==START) {
+              // Save the command and continue
+              strcpy(commandSave, strKeeper);
+              printf("Command save is %s\n", commandSave);
+              // Change state to havecommand to search for arguments
+              state = OUTREDIRECT;
+              // Skip the spaces
+              while(separateCommand[++k] == ' ');
+            }
+            // If the previous character is space then there is no need to insert
+            // an argument (it was added in the previous if)
+            else if(state==HAVECOMMAND && separateCommand[k-1] != ' ') {
+              // Insert the argument in the vector
+              vector_insert_last(argsVec, strdup(strKeeper));
+              state=OUTREDIRECT;
+              // Skip the spaces
+              while(separateCommand[++k] == ' ');
+            }
+            else if(state==OUTREDIRECT) {
+              // There are multiple redirections so
+              // open or truncade all files but use only
+              // use the last file
+              if((fd = creat(strKeeper, 0666)) == -1) {
+                  perror("creating");
+                  exit(1);
+              }
+              // Skip the spaces
+              while(separateCommand[k] == ' ') {
+                k++;
+              }
+            }
+            // Make the counter 0 in order to continue with the arguments
+            // if they exist
+            countCommands=0;
+            continue;
+          }
+          // // redirection
+          // if(separateCommand[k] == '>') {
+
+          // }
+          k++; countCommands++;
+        }
+        free(commandSave);free(strKeeper);vector_destroy(argsVec);
         // strcpy(remStr, separateCommand);
         // token = strtok(separateCommand, ">");
         // token = trim_whitespace(token);

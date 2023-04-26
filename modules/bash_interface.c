@@ -9,7 +9,7 @@
 #define READ 0
 #define WRITE 1
 
-void output_redirection(char *command, int outputFD){
+void execute_redirection(char *command, int outputFD){
     int pid, status;
 
     // Call fork system call
@@ -79,4 +79,53 @@ void destroy_alias(Map map, char *command) {
     // Remove the key from the map (if it exists)
     if(map_remove(map, key)==false)
         printf("-mysh: unalias: %s not found\n", key);
+}
+
+void execute_command(char *command, Vector vecArg) {
+    printf("Im in execute the command is %s\n", command);
+    int sizeVec=vector_size(vecArg);
+    int i;
+    int size = 2+sizeVec;
+    // Var argv is where the arguments will be placed
+    char *argv[size];
+    // Get the command from the command vector
+    // const char *command = (char *)vector_node_value(vecCom, vector_last(vecCom));
+
+    // Check if it has arguments
+    if(sizeVec == 0) {
+        // It has no arguments so execute just the command
+        argv[0] = command;
+        argv[1] = NULL;
+    }
+    else {
+        // It has arguments so execute the command with them
+        argv[0] = command;
+        for(i=0 ; i<sizeVec ; i++) {
+            argv[i+1] = vector_get_at(vecArg, i);
+            printf("%s\n", argv[i+1]);
+        }
+        argv[i+1] = NULL;
+    }
+
+    int pid, status;
+
+    // Call fork system call
+    if((pid=fork()) == -1) {
+        perror("fork");
+        exit(2);
+    }
+    if(pid !=0) {
+        printf("Im the parent process");
+        // Wait for the child
+        if(wait(&status) != pid) {
+            perror("wait");
+            exit(4);
+        }
+        printf("Child terminated");
+    }
+    else {      // Child is the reader
+        execvp(command, argv);
+        perror("execvp");
+        exit(5);
+    }
 }
