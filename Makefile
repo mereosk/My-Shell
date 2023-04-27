@@ -22,7 +22,8 @@ $(EXEC): $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC)
 
 clean:
-	rm -f $(OBJS) $(EXEC)
+	rm -f $(OBJS) $(EXEC) \
+		*.txt
 
 run: $(EXEC)
 	$(EXEC) $(ARGS)

@@ -3,7 +3,7 @@
 #include "ADTMap.h"
 #include "ADTVector.h"
 
-void execute_redirection(char *command, int outputFD);
+void execute_redirection(char *command, char *strFD, Vector vecArg, bool redirectionFlag);
 
 // Creates an alias
 bool create_alias(Map map, char *command);

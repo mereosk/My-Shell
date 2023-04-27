@@ -233,6 +233,8 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         // state machines.
         printf("NOW STARTS THE PARSTING\n\n");
         int k=0, countCommands=0;
+        // This flag is turning true when it sees ">>"
+        bool appendFlag=false;
         char *strKeeper=calloc(256, sizeof(*strKeeper));
         char *commandSave=calloc(256, sizeof(*commandSave));
         // The state of the machine starts expecting a command
@@ -260,7 +262,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               break;
             }
             else if(state == OUTREDIRECT) {
-              printf("Im in out redirect\n");
+              execute_redirection(commandSave, strKeeper, argsVec, appendFlag);
               break;
             }
           }
@@ -287,6 +289,12 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
                 k++;
               }
             }
+            else if(state == OUTREDIRECT) {
+              // Just skip the spaces and continue
+              printf("STRKEEPER %s\n",strKeeper);
+              while(separateCommand[++k] == ' ');
+              continue;
+            }
             
             // Make the counter 0 in order to continue with the arguments
             // if they exist
@@ -306,7 +314,13 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             }
             // If the previous character is space then there is no need to insert
             // an argument (it was added in the previous if)
+            else if(state==HAVECOMMAND && separateCommand[k-1] == ' ') {
+              state=OUTREDIRECT;
+              // Skip the spaces
+              while(separateCommand[++k] == ' ');
+            }
             else if(state==HAVECOMMAND && separateCommand[k-1] != ' ') {
+              printf("argumentssssss\n");
               // Insert the argument in the vector
               vector_insert_last(argsVec, strdup(strKeeper));
               state=OUTREDIRECT;
@@ -314,6 +328,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               while(separateCommand[++k] == ' ');
             }
             else if(state==OUTREDIRECT) {
+              printf("STR KEEPER IS %s", strKeeper);
               // There are multiple redirections so
               // open or truncade all files but use only
               // use the last file
@@ -322,9 +337,17 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
                   exit(1);
               }
               // Skip the spaces
-              while(separateCommand[k] == ' ') {
-                k++;
-              }
+              while(separateCommand[++k] == ' ') ;
+            }
+            // Check if the next character is ">>" in order to redirect
+            // insertsion in an existing file (append)
+            // Also notice that k is the next k because we skipped at least
+            // one character above
+            if(separateCommand[k]=='>') {
+              printf("I DO APPEND\n");
+              appendFlag=!appendFlag;
+              // Skip the spaces
+              while(separateCommand[++k] == ' ') ;
             }
             // Make the counter 0 in order to continue with the arguments
             // if they exist

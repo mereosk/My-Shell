@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <string.h>
 
@@ -9,9 +10,58 @@
 #define READ 0
 #define WRITE 1
 
-void execute_redirection(char *command, int outputFD){
-    int pid, status;
+// char ** args_construct(Vector vecArg, char *command) {
+//     int sizeVec=vector_size(vecArg);
+//     int i;
+//     int size = 2+sizeVec;
+//     // Var argv is where the arguments will be placed
+//     char *argv[size];
 
+//     // Check if it has arguments
+//     if(sizeVec == 0) {
+//         // It has no arguments so execute just the command
+//         argv[0] = command;
+//         argv[1] = NULL;
+//     }
+//     else {
+//         // It has arguments so execute the command with them
+//         argv[0] = command;
+//         for(i=0 ; i<sizeVec ; i++) {
+//             argv[i+1] = vector_get_at(vecArg, i);
+//             printf("%s\n", argv[i+1]);
+//         }
+//         argv[i+1] = NULL;
+//     }
+
+//     return argv;
+// }
+
+void execute_redirection(char *command, char *strFD, Vector vecArg, bool appendFlag){
+    int pid, status, outputFD;
+
+    int sizeVec=vector_size(vecArg);
+    int i;
+    int size = 2+sizeVec;
+    // Var argv is where the arguments will be placed
+    char *argv[size];
+
+    // Check if it has arguments
+    if(sizeVec == 0) {
+        // It has no arguments so execute just the command
+        argv[0] = command;
+        argv[1] = NULL;
+    }
+    else {
+        // It has arguments so execute the command with them
+        argv[0] = command;
+        for(i=0 ; i<sizeVec ; i++) {
+            argv[i+1] = vector_get_at(vecArg, i);
+            printf("%s\n", argv[i+1]);
+        }
+        argv[i+1] = NULL;
+    }
+
+    
     // Call fork system call
     if((pid=fork()) == -1) {
         perror("fork");
@@ -30,10 +80,15 @@ void execute_redirection(char *command, int outputFD){
         printf("Child terminated");
     }
     else {      // Child is the reader
-        fflush(stdout);
+        if(appendFlag)
+            outputFD=open(strFD, O_WRONLY|O_APPEND|O_CREAT, 0666);
+        else
+            outputFD=open(strFD, O_WRONLY|O_TRUNC|O_CREAT, 0666);
+            
         dup2(outputFD,1);
         close(outputFD);
-        execlp(command, command, NULL);
+
+        execvp(command, argv);
         perror("execlp");
         exit(4);
     }
@@ -88,8 +143,6 @@ void execute_command(char *command, Vector vecArg) {
     int size = 2+sizeVec;
     // Var argv is where the arguments will be placed
     char *argv[size];
-    // Get the command from the command vector
-    // const char *command = (char *)vector_node_value(vecCom, vector_last(vecCom));
 
     // Check if it has arguments
     if(sizeVec == 0) {
