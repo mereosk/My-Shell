@@ -241,6 +241,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         // infileSave is where the infile will be saved so that
         // later will be used to do the redirection
         char *infileSave=calloc(256, sizeof(*infileSave));
+        // infileSave=NULL;
         // The state of the machine starts expecting a command
         int state = START;
         // Vector will be for keeping the arguments
@@ -266,7 +267,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               break;
             }
             else if(state == OUTREDIRECT) {
-              execute_redirection(commandSave, NULL, strKeeper, argsVec, appendFlag);
+              execute_redirection(commandSave, infileSave, strKeeper, argsVec, appendFlag);
               break;
             }
             else if(state == INREDIERECT) {
@@ -355,6 +356,15 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               // Skip the spaces
               while(separateCommand[++k] == ' ') ;
             }
+            else if(state==INREDIERECT) {
+              // Save the infile and continue
+              strcpy(infileSave, strKeeper);
+              printf("Command save is %s\n", infileSave);
+              state = OUTREDIRECT;
+              // Skip the spaces
+              while(separateCommand[++k] == ' ') ;
+            }
+            
             // Check if the next character is ">>" in order to redirect
             // insertsion in an existing file (append)
             // Also notice that k is the next k because we skipped at least
@@ -404,9 +414,9 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               // There are multiple redirections so
               // open or truncade all files but use only
               // use the last file
-              if((fd = creat(strKeeper, 0666)) == -1) {
+              if((fd = open(strKeeper, O_RDONLY)) == -1) {
                   perror("creating");
-                  exit(1);
+                  break;
               }
               // Skip the spaces
               while(separateCommand[++k] == ' ') ;

@@ -39,6 +39,8 @@
 void execute_redirection(char *command, char *inFile, char *outFile, Vector vecArg, bool appendFlag){
     int pid, status, outputFD, inputFD;
 
+    printf("infile %s and outfile %s\n",inFile, outFile);
+
     int sizeVec=vector_size(vecArg);
     int i;
     int size = 2+sizeVec;
@@ -81,13 +83,15 @@ void execute_redirection(char *command, char *inFile, char *outFile, Vector vecA
     }
     else {      // Child is the reader
         
-        if(outFile == NULL) {
+        if(outFile == NULL || (outFile != NULL && inFile[0] != '\0')) {
+            printf("Im here\n");
             inputFD=open(inFile, O_RDONLY);
             close(0);
             dup2(inputFD,0);
             close(inputFD);
         }   
-        else if(inFile == NULL) {
+        if(inFile[0] == '\0' || (outFile != NULL && inFile[0] != '\0')) {
+            printf("and here\n");
             if(appendFlag)
                 outputFD=open(outFile, O_WRONLY|O_APPEND|O_CREAT, 0666);
             else
