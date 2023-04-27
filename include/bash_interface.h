@@ -3,7 +3,14 @@
 #include "ADTMap.h"
 #include "ADTVector.h"
 
-void execute_redirection(char *command, char *strFD, Vector vecArg, bool redirectionFlag);
+extern enum RedirectOptions {
+    Both,
+    InOnly,
+    OutOnly
+};
+
+
+void execute_redirection(char *command, char *inFile, char *outFile, Vector vecArg, bool redirectionFlag);
 
 // Creates an alias
 bool create_alias(Map map, char *command);

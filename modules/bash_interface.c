@@ -36,8 +36,8 @@
 //     return argv;
 // }
 
-void execute_redirection(char *command, char *strFD, Vector vecArg, bool appendFlag){
-    int pid, status, outputFD;
+void execute_redirection(char *command, char *inFile, char *outFile, Vector vecArg, bool appendFlag){
+    int pid, status, outputFD, inputFD;
 
     int sizeVec=vector_size(vecArg);
     int i;
@@ -80,14 +80,24 @@ void execute_redirection(char *command, char *strFD, Vector vecArg, bool appendF
         printf("Child terminated");
     }
     else {      // Child is the reader
-        if(appendFlag)
-            outputFD=open(strFD, O_WRONLY|O_APPEND|O_CREAT, 0666);
-        else
-            outputFD=open(strFD, O_WRONLY|O_TRUNC|O_CREAT, 0666);
+        
+        if(outFile == NULL) {
+            inputFD=open(inFile, O_RDONLY);
+            close(0);
+            dup2(inputFD,0);
+            close(inputFD);
+        }   
+        else if(inFile == NULL) {
+            if(appendFlag)
+                outputFD=open(outFile, O_WRONLY|O_APPEND|O_CREAT, 0666);
+            else
+                outputFD=open(outFile, O_WRONLY|O_TRUNC|O_CREAT, 0666);
+            close(1);
+            dup2(outputFD,1);
+            close(outputFD);
+        }
+        
             
-        dup2(outputFD,1);
-        close(outputFD);
-
         execvp(command, argv);
         perror("execlp");
         exit(4);

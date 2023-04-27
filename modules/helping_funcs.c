@@ -9,6 +9,7 @@
 #define START 0
 #define HAVECOMMAND 1
 #define OUTREDIRECT 2
+#define INREDIERECT 3
 
 // Compare function that returns true if sting a starts with b
 int starts_with(Pointer a,Pointer b){
@@ -237,6 +238,9 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         bool appendFlag=false;
         char *strKeeper=calloc(256, sizeof(*strKeeper));
         char *commandSave=calloc(256, sizeof(*commandSave));
+        // infileSave is where the infile will be saved so that
+        // later will be used to do the redirection
+        char *infileSave=calloc(256, sizeof(*infileSave));
         // The state of the machine starts expecting a command
         int state = START;
         // Vector will be for keeping the arguments
@@ -262,7 +266,12 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               break;
             }
             else if(state == OUTREDIRECT) {
-              execute_redirection(commandSave, strKeeper, argsVec, appendFlag);
+              execute_redirection(commandSave, NULL, strKeeper, argsVec, appendFlag);
+              break;
+            }
+            else if(state == INREDIERECT) {
+              printf("STR IS %s\n", strKeeper);
+              execute_redirection(commandSave, strKeeper, NULL, argsVec, appendFlag);
               break;
             }
           }
@@ -295,6 +304,12 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               while(separateCommand[++k] == ' ');
               continue;
             }
+            else if(state == INREDIERECT) {
+              // Just skip the spaces and continue
+              printf("STRKEEPER %s\n",strKeeper);
+              while(separateCommand[++k] == ' ');
+              continue;
+            }
             
             // Make the counter 0 in order to continue with the arguments
             // if they exist
@@ -303,6 +318,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           }
           else if(separateCommand[k] == '>') {
             strKeeper[countCommands] = '\0';
+            appendFlag=false;
             if(state==START) {
               // Save the command and continue
               strcpy(commandSave, strKeeper);
@@ -345,11 +361,57 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             // one character above
             if(separateCommand[k]=='>') {
               printf("I DO APPEND\n");
-              appendFlag=!appendFlag;
+              appendFlag=true;
               // Skip the spaces
               while(separateCommand[++k] == ' ') ;
             }
             // Make the counter 0 in order to continue with the arguments
+            // if they exist
+            countCommands=0;
+            continue;
+          }
+          else if(separateCommand[k] == '<') {
+            strKeeper[countCommands] = '\0';
+            if(state==START) {
+              // Save the command and continue
+              strcpy(commandSave, strKeeper);
+              printf("Command save is %s\n", commandSave);
+              // Change state to havecommand to search for arguments
+              state = INREDIERECT;
+              // Skip the spaces
+              while(separateCommand[++k] == ' ');
+            }
+            // If the previous character is space then there is no need to insert
+            // an argument (it was added in the previous if)
+            else if(state==HAVECOMMAND && separateCommand[k-1] == ' ') {
+              state=INREDIERECT;
+              // Skip the spaces
+              while(separateCommand[++k] == ' ');
+            }
+            else if(state==HAVECOMMAND && separateCommand[k-1] != ' ') {
+              printf("argumentssssss\n");
+              // Insert the argument in the vector
+              vector_insert_last(argsVec, strdup(strKeeper));
+              state=INREDIERECT;
+              // Skip the spaces
+              while(separateCommand[++k] == ' ');
+            }
+            else if(state==INREDIERECT) {
+              printf("STR KEEPER IS %s", strKeeper);
+              // Save the infile and continue
+              strcpy(infileSave, strKeeper);
+              printf("Command save is %s\n", infileSave);
+              // There are multiple redirections so
+              // open or truncade all files but use only
+              // use the last file
+              if((fd = creat(strKeeper, 0666)) == -1) {
+                  perror("creating");
+                  exit(1);
+              }
+              // Skip the spaces
+              while(separateCommand[++k] == ' ') ;
+            }
+             // Make the counter 0 in order to continue with the arguments
             // if they exist
             countCommands=0;
             continue;
@@ -360,7 +422,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           // }
           k++; countCommands++;
         }
-        free(commandSave);free(strKeeper);vector_destroy(argsVec);
+        free(commandSave);free(strKeeper);free(infileSave);vector_destroy(argsVec);
         // strcpy(remStr, separateCommand);
         // token = strtok(separateCommand, ">");
         // token = trim_whitespace(token);
