@@ -10,8 +10,8 @@
 #define READ 0
 #define WRITE 1
 
-// char ** args_construct(Vector vecArg, char *command) {
-//     int sizeVec=vector_size(vecArg);
+// char ** args_construct(Vector argsList, char *command) {
+//     int sizeVec=vector_size(argsList);
 //     int i;
 //     int size = 2+sizeVec;
 //     // Var argv is where the arguments will be placed
@@ -27,7 +27,7 @@
 //         // It has arguments so execute the command with them
 //         argv[0] = command;
 //         for(i=0 ; i<sizeVec ; i++) {
-//             argv[i+1] = vector_get_at(vecArg, i);
+//             argv[i+1] = vector_get_at(argsList, i);
 //             printf("%s\n", argv[i+1]);
 //         }
 //         argv[i+1] = NULL;
@@ -36,13 +36,13 @@
 //     return argv;
 // }
 
-void execute_redirection(char *command, char *inFile, char *outFile, Vector vecArg, bool appendFlag){
+void execute_redirection(char *command, char *inFile, char *outFile, List argsList, bool appendFlag){
     int pid, status, outputFD, inputFD;
 
     printf("infile %s and outfile %s\n",inFile, outFile);
 
-    int sizeVec=vector_size(vecArg);
-    int i;
+    int sizeVec=list_size(argsList);
+    int i=0;
     int size = 2+sizeVec;
     // Var argv is where the arguments will be placed
     char *argv[size];
@@ -56,9 +56,12 @@ void execute_redirection(char *command, char *inFile, char *outFile, Vector vecA
     else {
         // It has arguments so execute the command with them
         argv[0] = command;
-        for(i=0 ; i<sizeVec ; i++) {
-            argv[i+1] = vector_get_at(vecArg, i);
+        for(ListNode lNode = list_first(argsList);
+        lNode != LIST_EOF;
+        lNode=list_next(argsList, lNode)) {
+            argv[i+1] = (char *)list_node_value(argsList, lNode);
             printf("%s\n", argv[i+1]);
+            i++;
         }
         argv[i+1] = NULL;
     }
@@ -150,10 +153,10 @@ void destroy_alias(Map map, char *command) {
         printf("-mysh: unalias: %s not found\n", key);
 }
 
-void execute_command(char *command, Vector vecArg) {
+void execute_command(char *command, List argsList) {
     printf("Im in execute the command is %s\n", command);
-    int sizeVec=vector_size(vecArg);
-    int i;
+    int sizeVec=list_size(argsList);
+    int i=0;
     int size = 2+sizeVec;
     // Var argv is where the arguments will be placed
     char *argv[size];
@@ -167,9 +170,12 @@ void execute_command(char *command, Vector vecArg) {
     else {
         // It has arguments so execute the command with them
         argv[0] = command;
-        for(i=0 ; i<sizeVec ; i++) {
-            argv[i+1] = vector_get_at(vecArg, i);
+        for(ListNode lNode = list_first(argsList);
+        lNode != LIST_EOF;
+        lNode=list_next(argsList, lNode)) {
+            argv[i+1] = (char *)list_node_value(argsList, lNode);
             printf("%s\n", argv[i+1]);
+            i++;
         }
         argv[i+1] = NULL;
     }

@@ -10,6 +10,7 @@
 #define HAVECOMMAND 1
 #define OUTREDIRECT 2
 #define INREDIERECT 3
+#define PIPE 4
 
 // Compare function that returns true if sting a starts with b
 int starts_with(Pointer a,Pointer b){
@@ -233,7 +234,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         // Now we will parse the command using the logic of
         // state machines.
         printf("NOW STARTS THE PARSTING\n\n");
-        int k=0, countCommands=0;
+        int k=0, indivStr=0, countCommands=0;
         // This flag is turning true when it sees ">>"
         bool appendFlag=false;
         char *strKeeper=calloc(256, sizeof(*strKeeper));
@@ -241,49 +242,60 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         // infileSave is where the infile will be saved so that
         // later will be used to do the redirection
         char *infileSave=calloc(256, sizeof(*infileSave));
-        // infileSave=NULL;
         // The state of the machine starts expecting a command
         int state = START;
-        // Vector will be for keeping the arguments
-        Vector argsVec = vector_create(0, free);
+        // List will be for keeping the arguments of a specific command
+        List argsList = list_create(free);
+        // List will be for keeping the all the arguments (List of lists)
+        List argsListAll = list_create(list_destroy);
+        // List will be for keeping all the commands
+        List comList = list_create(free);
+        bool pipeFlag=false;
         while(1) {
           // printf("char %c%s", separateCommand[k], separateCommand);
-          strKeeper[countCommands]=separateCommand[k];
+          strKeeper[indivStr]=separateCommand[k];
           // com1 
           if(separateCommand[k] == '\0') {
             // If the state is command it is -mysh command
             if(state == START) {
               printf("IMG HERE\n");
-              // Insert the command in the command vector
+              // Insert the command in the command list
               // vector_insert_last(commandVec, strdup(strKeeper));
-              execute_command(strKeeper, argsVec);
+              execute_command(strKeeper, argsList);
               break;
             }
             else if(state == HAVECOMMAND) {
               printf("argument have command\n");
-              // Insert the last argument in the vector and execute the command
-              vector_insert_last(argsVec, strdup(strKeeper));
-              execute_command(commandSave, argsVec);
+              if(pipeFlag==true) {
+                 printf("Im actually here\n");
+              }
+              else {
+                // Insert the last argument in the list and execute the command
+                list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
+                execute_command(commandSave, argsList);
+              }
               break;
             }
             else if(state == OUTREDIRECT) {
-              execute_redirection(commandSave, infileSave, strKeeper, argsVec, appendFlag);
+              execute_redirection(commandSave, infileSave, strKeeper, argsList, appendFlag);
               break;
             }
             else if(state == INREDIERECT) {
               printf("STR IS %s\n", strKeeper);
-              execute_redirection(commandSave, strKeeper, NULL, argsVec, appendFlag);
+              execute_redirection(commandSave, strKeeper, NULL, argsList, appendFlag);
               break;
             }
           }
           else if(separateCommand[k] == ' ') {
             // Without the space
-            strKeeper[countCommands] = '\0';
+            strKeeper[indivStr] = '\0';
             // Check if the stirng in strKeeper is a command
             if(state == START) {
               // Save the command and search for arguments
               strcpy(commandSave, strKeeper);
               printf("Command save is %s\n", commandSave);
+              list_insert_next(comList, list_last(comList), strdup(strKeeper));
+              list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
               // Change state to havecommand to search for arguments
               state = HAVECOMMAND;
               // Skip the spaces
@@ -292,8 +304,10 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               }
             }
             else if(state == HAVECOMMAND) {
-              // Insert the argument in the vector
-              vector_insert_last(argsVec, strdup(strKeeper));
+              // Insert the argument in the list
+              list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
+              List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
+              list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
               // Skip the spaces
               while(separateCommand[k] == ' ') {
                 k++;
@@ -314,16 +328,18 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             
             // Make the counter 0 in order to continue with the arguments
             // if they exist
-            countCommands=0;
+            indivStr=0;
             continue;
           }
           else if(separateCommand[k] == '>') {
-            strKeeper[countCommands] = '\0';
+            strKeeper[indivStr] = '\0';
             appendFlag=false;
             if(state==START) {
               // Save the command and continue
               strcpy(commandSave, strKeeper);
               printf("Command save is %s\n", commandSave);
+              list_insert_next(comList, list_last(comList), strdup(strKeeper));
+              list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
               // Change state to havecommand to search for arguments
               state = OUTREDIRECT;
               // Skip the spaces
@@ -338,8 +354,10 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             }
             else if(state==HAVECOMMAND && separateCommand[k-1] != ' ') {
               printf("argumentssssss\n");
-              // Insert the argument in the vector
-              vector_insert_last(argsVec, strdup(strKeeper));
+              // Insert the argument in the list
+              list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
+              List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
+              list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
               state=OUTREDIRECT;
               // Skip the spaces
               while(separateCommand[++k] == ' ');
@@ -377,15 +395,17 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             }
             // Make the counter 0 in order to continue with the arguments
             // if they exist
-            countCommands=0;
+            indivStr=0;
             continue;
           }
           else if(separateCommand[k] == '<') {
-            strKeeper[countCommands] = '\0';
+            strKeeper[indivStr] = '\0';
             if(state==START) {
               // Save the command and continue
               strcpy(commandSave, strKeeper);
               printf("Command save is %s\n", commandSave);
+              list_insert_next(comList, list_last(comList), strdup(strKeeper));
+              list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
               // Change state to havecommand to search for arguments
               state = INREDIERECT;
               // Skip the spaces
@@ -400,8 +420,10 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             }
             else if(state==HAVECOMMAND && separateCommand[k-1] != ' ') {
               printf("argumentssssss\n");
-              // Insert the argument in the vector
-              vector_insert_last(argsVec, strdup(strKeeper));
+              // Insert the argument in the list
+              list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
+              List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
+              list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
               state=INREDIERECT;
               // Skip the spaces
               while(separateCommand[++k] == ' ');
@@ -423,16 +445,67 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             }
              // Make the counter 0 in order to continue with the arguments
             // if they exist
-            countCommands=0;
+            indivStr=0;
+            continue;
+          }
+          else if(separateCommand[k] == '|') {
+            strKeeper[indivStr] = '\0';
+            pipeFlag=true;
+            if(state==START) {
+              // Save the command and continue
+              strcpy(commandSave, strKeeper);
+              printf("Command save is %s\n", commandSave);
+              list_insert_next(comList, list_last(comList), strdup(strKeeper));
+              list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
+              // Change state to havecommand to search for arguments
+              state = START;
+              // Skip the spaces
+              while(separateCommand[++k] == ' ');
+            }
+            // If the previous character is space then there is no need to insert
+            // an argument (it was added in the previous if)
+            else if(state==HAVECOMMAND && separateCommand[k-1] == ' ') {
+              state=START;
+              // Skip the spaces
+              while(separateCommand[++k] == ' ');
+            }
+            else if(state==HAVECOMMAND && separateCommand[k-1] != ' ') {
+              printf("argumentssssss\n");
+              // Insert the argument in the list
+              list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
+              List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
+              list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
+              state=START;
+              // Skip the spaces
+              while(separateCommand[++k] == ' ');
+            }
+            else if(state==INREDIERECT) {
+              printf("STR KEEPER IS %s", strKeeper);
+              // Save the infile and continue
+              strcpy(infileSave, strKeeper);
+              printf("Command save is %s\n", infileSave);
+              // There are multiple redirections so
+              // open or truncade all files but use only
+              // use the last file
+              if((fd = open(strKeeper, O_RDONLY)) == -1) {
+                  perror("creating");
+                  break;
+              }
+              // Skip the spaces
+              while(separateCommand[++k] == ' ') ;
+            }
+             // Make the counter 0 in order to continue with the arguments
+            // if they exist
+            indivStr=0;
             continue;
           }
           // // redirection
           // if(separateCommand[k] == '>') {
 
           // }
-          k++; countCommands++;
+          k++; indivStr++;
         }
-        free(commandSave);free(strKeeper);free(infileSave);vector_destroy(argsVec);
+        free(commandSave);free(strKeeper);free(infileSave);list_destroy(argsList);list_destroy(comList);list_destroy(argsListAll);
         // strcpy(remStr, separateCommand);
         // token = strtok(separateCommand, ">");
         // token = trim_whitespace(token);

@@ -3,6 +3,7 @@
 #include "ADTVector.h"
 #include "ADTMap.h"
 #include "bash_interface.h"
+#include "ADTList.h"
 
 // This function parses the string
 void parse(char *inputStr, Vector historyVector, Map aliasMap);

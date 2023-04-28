@@ -2,19 +2,13 @@
 
 #include "ADTMap.h"
 #include "ADTVector.h"
+#include "ADTList.h"
 
-extern enum RedirectOptions {
-    Both,
-    InOnly,
-    OutOnly
-};
-
-
-void execute_redirection(char *command, char *inFile, char *outFile, Vector vecArg, bool redirectionFlag);
+void execute_redirection(char *command, char *inFile, char *outFile, List argsList, bool redirectionFlag);
 
 // Creates an alias
 bool create_alias(Map map, char *command);
 
 void destroy_alias(Map map, char *command);
 
-void execute_command(char *command, Vector vecArg);
+void execute_command(char *command, List argsList);
