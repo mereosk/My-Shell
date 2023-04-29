@@ -64,6 +64,8 @@ void list_destroy(List list);
 //
 // Επιστρέφουν τον πρώτο και τον τελευταίο κομβο της λίστας, ή LIST_BOF / LIST_EOF αντίστοιχα αν η λίστα είναι κενή
 
+void print_list(List list);
+
 ListNode list_first(List list);
 ListNode list_last(List list);
 

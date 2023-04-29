@@ -12,3 +12,5 @@ bool create_alias(Map map, char *command);
 void destroy_alias(Map map, char *command);
 
 void execute_command(char *command, List argsList);
+
+void execute_pipe(List commands, List argsListAll);

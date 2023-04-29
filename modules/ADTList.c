@@ -124,6 +124,15 @@ void list_destroy(List list) {
 
 // Διάσχιση της λίστας /////////////////////////////////////////////
 
+void print_list(List list) {
+	for(ListNode lNode=list_first(list);
+    lNode != LIST_EOF;
+    lNode = list_next(list , lNode)
+    ) {
+        printf("%s\n",(char *)list_node_value(list, lNode));
+    }
+}
+
 ListNode list_first(List list) {
 	// Ο πρώτος κόμβος είναι ο επόμενος του dummy.
 	//
@@ -140,13 +149,14 @@ ListNode list_last(List list) {
 }
 
 ListNode list_next(List list, ListNode node) {
-	assert(node != NULL);	// LCOV_EXCL_LINE (αγνοούμε το branch από τα coverage reports, είναι δύσκολο να τεστάρουμε το false γιατί θα κρασάρει το test)
-	return node->next;
+	// assert(node != NULL);	// LCOV_EXCL_LINE (αγνοούμε το branch από τα coverage reports, είναι δύσκολο να τεστάρουμε το false γιατί θα κρασάρει το test)
+	return (node != NULL) ? node->next : NULL;
+	// return node->next;
 }
 
 Pointer list_node_value(List list, ListNode node) {
-	assert(node != NULL);	// LCOV_EXCL_LINE
-	return node->value;
+	// assert(node != NULL);	// LCOV_EXCL_LINE
+	return (node != NULL) ? node->value : NULL;
 }
 
 ListNode list_find_node(List list, Pointer value, CompareFunc compare) {

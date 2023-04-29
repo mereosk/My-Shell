@@ -260,8 +260,17 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             if(state == START) {
               printf("IMG HERE\n");
               // Insert the command in the command list
-              // vector_insert_last(commandVec, strdup(strKeeper));
-              execute_command(strKeeper, argsList);
+              list_insert_next(comList, list_last(comList), strdup(strKeeper));
+              list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
+              if(pipeFlag==true) {
+                 printf("Im actually here\n");
+                 execute_pipe(comList, argsListAll);
+              }
+              else {
+                execute_command(strKeeper, argsList);
+              }
+              printf("came here\n");
+              // sleep(100);
               break;
             }
             else if(state == HAVECOMMAND) {
@@ -551,6 +560,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     free(command);
     free(remStr);
     printf("Hello im in parse this is the stirng %s", separateCommand);
+    // sleep(100);
 }
 
 char *trim_whitespace(char *str)

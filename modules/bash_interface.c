@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <string.h>
 
 #include "bash_interface.h"
@@ -201,4 +202,91 @@ void execute_command(char *command, List argsList) {
         perror("execvp");
         exit(5);
     }
+}
+
+void execute_pipe(List commands, List argsListAll) {
+    int numOfCommands=list_size(commands);
+    print_list(commands);
+    printf("num of commands is %d\n", numOfCommands);
+    int fds[2], input=0, output, pid, i, status, pidArray[numOfCommands];
+    char *command;
+    List argsList;
+    ListNode commandlNode, argslNode;
+    
+    // int sizeVec=list_size(argsList);
+    // int size = 2+sizeVec;
+    // // Var argv is where the arguments will be placed
+    // char *argv[size];
+
+    // Loop through all the commands, each command is a child
+    command = (char *)list_node_value(commands, commandlNode=list_first(commands));
+    argsList = list_node_value(argsListAll, argslNode=list_first(argsListAll));
+
+    for(i=0;i<numOfCommands; i++) {
+        if(i<(numOfCommands-1)) {
+            if(pipe(fds) == -1) { perror("pipe"); exit(1);}
+            output = fds[WRITE];
+        }
+        else {
+            output = 1;
+        }
+        
+        if((pid = fork()) == -1) { perror("fork"); exit(1); }
+
+        // Children
+        if(pid == 0) {
+
+            if(input != 0) {
+                dup2(input, 0);
+                close(input);
+            }
+            if(output != 1) {
+                dup2(output,1);
+                close(output);
+                close(fds[READ]);
+            }
+            // // Construct the argv
+            // int listSize=list_size(argsList);
+            // int j=0;
+            // int size = 2+listSize;
+            // // Var argv is where the arguments will be placed
+            // char *argv[size];
+            char *argv[2];
+            // // Check if it has arguments
+            // if(listSize == 0) {
+            //     // It has no arguments so execute just the command
+            //     printf("ye\n");
+                argv[0] = command;
+                argv[1] = NULL;
+            // }
+            // else {
+            //     // It has arguments so execute the command with them
+            //     argv[0] = command;
+            //     for(ListNode lNode = list_first(argsList);
+            //     lNode != LIST_EOF;
+            //     lNode=list_next(argsList, lNode)) {
+            //         argv[j+1] = (char *)list_node_value(argsList, lNode);
+            //         printf("%s\n", argv[i+1]);
+            //         j++;
+            //     }
+            //     argv[j+1] = NULL;
+            // }
+            execvp(command, argv);
+            perror("execvp");
+            exit(5);
+        }  
+
+        // Parent
+        if(output!=1) close(output);
+        if(input!=0) close(input);
+        input=fds[0];
+        pidArray[i] = pid;
+        command = (char *)list_node_value(commands, list_next(commands, commandlNode) );
+        argsList = list_node_value(argsListAll, list_next(commands, argslNode));
+    }
+    for(int j=0; j<numOfCommands; j++) {
+        if(waitpid(pidArray[j], &status, 0 ) == -1) { perror("waitpid"); exit(1);}
+    }
+    // sleep(100);
+    return;
 }
