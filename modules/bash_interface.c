@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <errno.h>
+#include <glob.h>
 
 #include "bash_interface.h"
 
@@ -322,4 +323,65 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
     }
     // sleep(100);
     return;
+}
+
+void wildcard_matching(List argsListAll) {
+    List inListArg;
+    char *arg;
+    char **found;
+    glob_t gstruct;
+    int result;
+
+    // Loop through all the arguments
+    for(ListNode outlNode=list_first(argsListAll);
+    outlNode != LIST_EOF;
+    outlNode = list_next(argsListAll , outlNode)
+    ) {
+        inListArg = (List)list_node_value(argsListAll, outlNode);
+    
+        // Loop through the arguments of a specific command
+        ListNode inlNode=list_first(inListArg);
+        ListNode prevNode=LIST_BOF;
+        while(inlNode != LIST_EOF) {
+            // Get the argument and search for wildcards
+            arg = (char *)list_node_value(inListArg, inlNode);
+            printf("argument is %s\n",arg);
+            if((result=glob(arg, GLOB_ERR , NULL, &gstruct)) != 0) {
+                if( result!=GLOB_NOMATCH )
+                    fprintf(stderr,"mysh:%s\n",strerror(errno));
+            }
+            
+            if(gstruct.gl_pathc != 0) {
+                printf("Found %zu filename matches\n", gstruct.gl_pathc);
+                found = gstruct.gl_pathv;
+                ListNode tempNode = prevNode;
+                while(*found)
+                {
+                    printf("%s\n",*found);
+                    // Insert the matched filenames in the list after prev list node
+                    list_insert_next(inListArg, tempNode, strdup(*found));
+                    // Now tempNode is the newlly created node
+                    if(tempNode == LIST_BOF) {
+                        tempNode=list_first(inListArg);
+                    }
+                    else {
+                        tempNode=list_next(inListArg, tempNode);
+                    }
+                    printf("node value is %s\n",(char *)list_node_value(inListArg, tempNode));
+                    found++;
+                }
+
+                // Remove the list node that had the wildcard
+                list_remove_next(inListArg, tempNode);
+                print_list(inListArg);
+                prevNode=tempNode;
+            }
+            else 
+                prevNode =inlNode;
+            // Free the dynamically allocated storage from glob()
+            globfree(&gstruct);
+            inlNode=list_next(inListArg, prevNode);
+        }
+    }
+
 }

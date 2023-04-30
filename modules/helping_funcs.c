@@ -280,6 +280,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
               List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
               list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
+              wildcard_matching(argsListAll);
               if(pipeFlag==true) {
                 printf("Im actually here\n");
                 execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag);
