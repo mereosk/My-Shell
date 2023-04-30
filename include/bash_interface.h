@@ -13,4 +13,4 @@ void destroy_alias(Map map, char *command);
 
 void execute_command(char *command, List argsList);
 
-void execute_pipe(List commands, List argsListAll);
+void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, bool appendFlag);

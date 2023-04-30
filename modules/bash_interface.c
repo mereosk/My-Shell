@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <errno.h>
 
 #include "bash_interface.h"
 
@@ -204,20 +205,43 @@ void execute_command(char *command, List argsList) {
     }
 }
 
-void execute_pipe(List commands, List argsListAll) {
+void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, bool appendFlag) {
     int numOfCommands=list_size(commands);
     print_list(commands);
     print_args(argsListAll);
     printf("num of commands is %d\n", numOfCommands);
-    int fds[2], input=0, output, pid, i, status, pidArray[numOfCommands];
+    int fds[2], input, output, pid, i, status, pidArray[numOfCommands], outputFD;
     char *command;
     List argsList;
     ListNode commandlNode, argslNode;
-    
-    // int sizeVec=list_size(argsList);
-    // int size = 2+sizeVec;
-    // // Var argv is where the arguments will be placed
-    // char *argv[size];
+
+    // Check if the first character of inFile is \0, that means
+    // that there weren't an input redirection
+    if(inFile[0] == '\0') {
+        // The first input will be from stdin
+        input = 0;
+    }
+    else {
+        // The first input will be from inFile file
+        printf("Im here %s\n", inFile);
+        if((input=open(inFile, O_RDONLY))==-1) {
+            // If the inFile doesn't exist then print the errno and 
+            // continue the bash (don't exit)
+            fprintf(stderr,"mysh:%s:%s\n",inFile,strerror(errno));
+            return;
+        }
+    }
+
+    // Check if the outFile is not NULL. If that is true then 
+    // an output redirection must be executed
+    if(outFile != NULL) {
+        // If the append flag is true there is an output redirection
+        // that appends in the file instead of truncade it
+        if(appendFlag)
+            outputFD=open(outFile, O_WRONLY|O_APPEND|O_CREAT, 0666);
+         else
+            outputFD=open(outFile, O_WRONLY|O_TRUNC|O_CREAT, 0666);
+    }
 
     // Loop through all the commands, each command is a child
 
@@ -227,20 +251,16 @@ void execute_pipe(List commands, List argsListAll) {
     i++, command = (char *)list_node_value(commands, commandlNode=list_next(commands, commandlNode)), \
     argsList = list_node_value(argsListAll, argslNode=list_next(commands, argslNode)) \
     ) {
-        // if(i==0) {
-        //     commandlNode=list_first(commands);
-        //     command = (char *)list_node_value(commands, commandlNode);
-        // }
-        // else { 
-        //     command = (char *)list_node_value(commands, commandlNode=list_next(commands, commandlNode) );
-        //     fprintf(stderr, "trying to change the com %s \n", command);
-        // }
+
         if(i<(numOfCommands-1)) {
             if(pipe(fds) == -1) { perror("pipe"); exit(1);}
             output = fds[WRITE];
         }
         else {
-            output = 1;
+            if(outFile != NULL)
+                output = outputFD;
+            else 
+                output = 1;
         }
         
         if((pid = fork()) == -1) { perror("fork"); exit(1); }
@@ -255,7 +275,8 @@ void execute_pipe(List commands, List argsListAll) {
             if(output != 1) {
                 dup2(output,1);
                 close(output);
-                close(fds[READ]);
+                if(i<(numOfCommands-1)) 
+                    close(fds[READ]);
             }
             // Construct the argv
             int listSize=list_size(argsList);

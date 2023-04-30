@@ -234,7 +234,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         // Now we will parse the command using the logic of
         // state machines.
         printf("NOW STARTS THE PARSTING\n\n");
-        int k=0, indivStr=0, countCommands=0;
+        int k=0, indivStr=0;
         // This flag is turning true when it sees ">>"
         bool appendFlag=false;
         char *strKeeper=calloc(256, sizeof(*strKeeper));
@@ -264,10 +264,11 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
               if(pipeFlag==true) {
                  printf("Im actually here\n");
-                 execute_pipe(comList, argsListAll);
+                 execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag);
               }
               else {
-                execute_command(strKeeper, argsList);
+                // execute_command(strKeeper, argsList);
+                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag);
               }
               printf("came here\n");
               // sleep(100);
@@ -281,20 +282,23 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
               if(pipeFlag==true) {
                 printf("Im actually here\n");
-                execute_pipe(comList, argsListAll);
+                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag);
               }
               else {
-                execute_command(commandSave, argsList);
+                // execute_command(commandSave, argsList);
+                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag);
               }
               break;
             }
             else if(state == OUTREDIRECT) {
-              execute_redirection(commandSave, infileSave, strKeeper, argsList, appendFlag);
+              // execute_redirection(commandSave, infileSave, strKeeper, argsList, appendFlag);
+              execute_pipe(comList, argsListAll, infileSave, strKeeper, appendFlag);
               break;
             }
             else if(state == INREDIERECT) {
               printf("STR IS %s\n", strKeeper);
-              execute_redirection(commandSave, strKeeper, NULL, argsList, appendFlag);
+              // execute_redirection(commandSave, strKeeper, NULL, argsList, appendFlag);
+              execute_pipe(comList, argsListAll, strKeeper, NULL, appendFlag);
               break;
             }
           }
@@ -492,17 +496,10 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               while(separateCommand[++k] == ' ');
             }
             else if(state==INREDIERECT) {
-              printf("STR KEEPER IS %s", strKeeper);
               // Save the infile and continue
               strcpy(infileSave, strKeeper);
               printf("Command save is %s\n", infileSave);
-              // There are multiple redirections so
-              // open or truncade all files but use only
-              // use the last file
-              if((fd = open(strKeeper, O_RDONLY)) == -1) {
-                  perror("creating");
-                  break;
-              }
+              state = START;
               // Skip the spaces
               while(separateCommand[++k] == ' ') ;
             }
