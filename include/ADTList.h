@@ -66,6 +66,8 @@ void list_destroy(List list);
 
 void print_list(List list);
 
+void print_args(List argList);
+
 ListNode list_first(List list);
 ListNode list_last(List list);
 

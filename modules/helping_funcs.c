@@ -44,7 +44,7 @@ char *str_replace(char *orig, char *rep, char *with) {
 
     // count the number of replacements needed
     ins = orig;
-    for (count = 0; tmp = strstr(ins, rep); ++count) {
+    for (count = 0; (tmp = strstr(ins, rep)) ; ++count) {
         ins = tmp + len_rep;
     }
 
@@ -275,12 +275,15 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             }
             else if(state == HAVECOMMAND) {
               printf("argument have command\n");
+              // Insert the last argument in the list and execute the command
+              list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
+              List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
+              list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
               if(pipeFlag==true) {
-                 printf("Im actually here\n");
+                printf("Im actually here\n");
+                execute_pipe(comList, argsListAll);
               }
               else {
-                // Insert the last argument in the list and execute the command
-                list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
                 execute_command(commandSave, argsList);
               }
               break;

@@ -121,7 +121,7 @@ bool create_alias(Map map, char *command) {
     printf("MY COMMAND IS %s %s\n", command, tempStr);
     // First token is the key
     key = strtok(tempStr, "\"");
-    if(key[strlen(key)-1]=' ')
+    if(key[strlen(key)-1] = ' ')
         key[strlen(key)-1]='\0';
 
     value = strtok(NULL, "\"");
@@ -207,6 +207,7 @@ void execute_command(char *command, List argsList) {
 void execute_pipe(List commands, List argsListAll) {
     int numOfCommands=list_size(commands);
     print_list(commands);
+    print_args(argsListAll);
     printf("num of commands is %d\n", numOfCommands);
     int fds[2], input=0, output, pid, i, status, pidArray[numOfCommands];
     char *command;
@@ -219,10 +220,21 @@ void execute_pipe(List commands, List argsListAll) {
     // char *argv[size];
 
     // Loop through all the commands, each command is a child
-    command = (char *)list_node_value(commands, commandlNode=list_first(commands));
-    argsList = list_node_value(argsListAll, argslNode=list_first(argsListAll));
 
-    for(i=0;i<numOfCommands; i++) {
+    for( i=0, command = (char *)list_node_value(commands, commandlNode=list_first(commands)),
+    argsList = (List)list_node_value(argsListAll, argslNode=list_first(argsListAll)) ;\
+    i<numOfCommands ; \
+    i++, command = (char *)list_node_value(commands, commandlNode=list_next(commands, commandlNode)), \
+    argsList = list_node_value(argsListAll, argslNode=list_next(commands, argslNode)) \
+    ) {
+        // if(i==0) {
+        //     commandlNode=list_first(commands);
+        //     command = (char *)list_node_value(commands, commandlNode);
+        // }
+        // else { 
+        //     command = (char *)list_node_value(commands, commandlNode=list_next(commands, commandlNode) );
+        //     fprintf(stderr, "trying to change the com %s \n", command);
+        // }
         if(i<(numOfCommands-1)) {
             if(pipe(fds) == -1) { perror("pipe"); exit(1);}
             output = fds[WRITE];
@@ -235,7 +247,7 @@ void execute_pipe(List commands, List argsListAll) {
 
         // Children
         if(pid == 0) {
-
+            fprintf(stderr, "im in child with command %s \n", command);
             if(input != 0) {
                 dup2(input, 0);
                 close(input);
@@ -245,32 +257,34 @@ void execute_pipe(List commands, List argsListAll) {
                 close(output);
                 close(fds[READ]);
             }
-            // // Construct the argv
-            // int listSize=list_size(argsList);
-            // int j=0;
-            // int size = 2+listSize;
-            // // Var argv is where the arguments will be placed
-            // char *argv[size];
-            char *argv[2];
-            // // Check if it has arguments
-            // if(listSize == 0) {
-            //     // It has no arguments so execute just the command
-            //     printf("ye\n");
+            // Construct the argv
+            int listSize=list_size(argsList);
+            fprintf(stderr, "SIZE IS %d\n\n", listSize);
+            int j=0;
+            int size = 2+listSize;
+            // Var argv is where the arguments will be placed
+            char *argv[size];
+            // char *argv[2];
+            // Check if it has arguments
+            if(listSize == 0) {
+                // It has no arguments so execute just the command
                 argv[0] = command;
                 argv[1] = NULL;
-            // }
-            // else {
-            //     // It has arguments so execute the command with them
-            //     argv[0] = command;
-            //     for(ListNode lNode = list_first(argsList);
-            //     lNode != LIST_EOF;
-            //     lNode=list_next(argsList, lNode)) {
-            //         argv[j+1] = (char *)list_node_value(argsList, lNode);
-            //         printf("%s\n", argv[i+1]);
-            //         j++;
-            //     }
-            //     argv[j+1] = NULL;
-            // }
+                fprintf(stderr, "THAP REPEEEEEEEE\n");
+            }
+            else {
+                // It has arguments so execute the command with them
+                print_list(argsList);
+                argv[0] = command;
+                for(ListNode lNode = list_first(argsList);
+                lNode != LIST_EOF;
+                lNode=list_next(argsList, lNode)) {
+                    argv[j+1] = (char *)list_node_value(argsList, lNode);
+                    fprintf(stderr,"%s\n", argv[j+1]);
+                    j++;
+                }
+                argv[j+1] = NULL;
+            }
             execvp(command, argv);
             perror("execvp");
             exit(5);
@@ -279,10 +293,8 @@ void execute_pipe(List commands, List argsListAll) {
         // Parent
         if(output!=1) close(output);
         if(input!=0) close(input);
-        input=fds[0];
+        input=fds[READ];
         pidArray[i] = pid;
-        command = (char *)list_node_value(commands, list_next(commands, commandlNode) );
-        argsList = list_node_value(argsListAll, list_next(commands, argslNode));
     }
     for(int j=0; j<numOfCommands; j++) {
         if(waitpid(pidArray[j], &status, 0 ) == -1) { perror("waitpid"); exit(1);}

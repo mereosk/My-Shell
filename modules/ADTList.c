@@ -4,6 +4,7 @@
 //
 ///////////////////////////////////////////////////////////
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
@@ -129,7 +130,18 @@ void print_list(List list) {
     lNode != LIST_EOF;
     lNode = list_next(list , lNode)
     ) {
-        printf("%s\n",(char *)list_node_value(list, lNode));
+        fprintf(stderr,"->%s\n",(char *)list_node_value(list, lNode));
+    }
+}
+
+void print_args(List argList) {
+	printf("\n");
+	for(ListNode lNode=list_first(argList);
+    lNode != LIST_EOF;
+    lNode = list_next(argList , lNode)
+    ) {
+        print_list((List)list_node_value(argList, lNode));
+		printf("\n");
     }
 }
 
