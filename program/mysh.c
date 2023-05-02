@@ -18,7 +18,6 @@ void reset() {
 
 int main(int argc, char** argv) {
 
-    int myshHistoryDF;
     List mylist = list_create(NULL);
     // Initialise the history vector
     Vector historyVector = vector_create(0,  free);

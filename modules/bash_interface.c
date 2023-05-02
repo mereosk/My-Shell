@@ -7,6 +7,7 @@
 #include <string.h>
 #include <errno.h>
 #include <glob.h>
+#include <ctype.h>
 
 #include "bash_interface.h"
 
@@ -252,7 +253,11 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
     i++, command = (char *)list_node_value(commands, commandlNode=list_next(commands, commandlNode)), \
     argsList = list_node_value(argsListAll, argslNode=list_next(commands, argslNode)) \
     ) {
+        if((strcmp(command,"cd")==0)) {
+            change_directory(argsList);
 
+            return;
+        }
         if(i<(numOfCommands-1)) {
             if(pipe(fds) == -1) { perror("pipe"); exit(1);}
             output = fds[WRITE];
@@ -394,7 +399,7 @@ Pointer check_alias(Map map, char *str) {
 
 void replace_aliases(List comList, List argList, Map aliasMap) {
     List indivArgList;
-    ListNode comlNode,argLNode, prevComNode=LIST_BOF, tempComNode=NULL, tempArgNode=NULL;
+    ListNode comlNode,argLNode, prevComNode=LIST_BOF;
     char *command, *result;
 
     //Loop through commands and their arguments
@@ -436,4 +441,19 @@ char *trim_whitespace(char *str)
   end[1] = '\0';
 
   return str;
+}
+
+
+void change_directory(List directoryList) {
+    if(list_size(directoryList)>1) {
+        fprintf(stderr,"-mysh: cd: too many arguments");
+        return;
+    }
+    char *directory=list_node_value(directoryList, list_first(directoryList));
+    char *homeDir = "/home";
+
+    if((directory==NULL) || (strcmp(directory,"~")==0) || (strcmp(directory,"~/")==0))
+        chdir(homeDir);
+    else if(chdir(directory) != 0)
+        fprintf(stderr,"-mysh: cd: %s:%s",directory, strerror(errno));
 }

@@ -23,3 +23,5 @@ void wildcard_matching(List argsListAll);
 void replace_aliases(List comList, List argList, Map aliasMap);
 
 char *trim_whitespace(char *str);
+
+void change_directory(List directoryList);

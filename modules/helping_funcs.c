@@ -67,13 +67,13 @@ char *str_replace(char *orig, char *rep, char *with) {
 }
 
 void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
-    char *separateCommand, *token, *firstWord, *SCommandCopy, *separateCommandParse;
+    char *separateCommand, *firstWord, *SCommandCopy, *separateCommandParse;
     char *savePtrFW;
     char *kwCreateAlias="createalias";
     char *kwDestroyAlias="destroyalias";
     char *kwHistory="history";
     char *kwAlias="alias";
-    char *sepCommandReplaced= NULL;
+    char *kwChDir="cd";
     char *restSC = inputCommandWhole;
     char *remStr=malloc(256 * sizeof(*remStr));
     char *wholeStr=calloc((256),sizeof(*wholeStr));
@@ -130,6 +130,31 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           free(SCommandCopy);
           continue;
         }   
+        // else if(strcmp(firstWord, kwChDir)==0) {
+        //   printf("Now we change directory");
+        //   // First word is the keyword for changing directories
+        //   char *restArgs=rest_args(separateCommand);
+        //   // Run through the rest arguments and check how many spaces are there
+        //   // If there are more that 1 then there are too many arguments
+        //   char *copyRestArgs=restArgs;
+        //   int spaceCount=0;
+        //   if(restArgs!=NULL) {
+        //     restArgs=trim_whitespace(restArgs);
+        //     for(int i=0;i<=copyRestArgs[i];i++)
+        //       if(copyRestArgs[i]==' ')
+        //         spaceCount++;
+        //   }
+
+        //   if(spaceCount>1) {
+        //     fprintf(stderr,"-mysh: cd: too many arguments");
+        //   }
+        //   else {
+        //     printf("rest arguments is %s\n", restArgs);
+        //     change_directory(restArgs);
+        //   }
+        //   free(SCommandCopy);
+        //   continue;
+        // }
         else if((strcmp(firstWord, kwHistory)==0)) {
           // Check if the first word is the keyword for showing the last 20 commands
           printf("-----------------------\nTHE HISTORY OF MYSH COMMANDS :\n");
@@ -528,7 +553,6 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     free(command);
     free(remStr);
     free(wholeStr);
-    printf("Hello im in parse this is the stirng %s", separateCommand);
 }
 
 int begins_with_number(char *str){
