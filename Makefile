@@ -29,4 +29,4 @@ run: $(EXEC)
 	$(EXEC) $(ARGS)
 
 valgrind: $(EXEC)
-	valgrind --leak-check=full $(EXEC) $(ARGS)
+	valgrind --leak-check=full --track-origins=yes $(EXEC) $(ARGS)

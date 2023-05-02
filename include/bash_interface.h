@@ -25,3 +25,7 @@ void replace_aliases(List comList, List argList, Map aliasMap);
 char *trim_whitespace(char *str);
 
 void change_directory(List directoryList);
+
+char *replace_env_vars(char *inputCommandWhole);
+
+char *str_replace(char *orig, char *rep, char *with);

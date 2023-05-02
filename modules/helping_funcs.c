@@ -18,63 +18,13 @@ int starts_with(Pointer a,Pointer b){
 }
 
 
-
-// You must free the result if result is non-NULL.
-char *str_replace(char *orig, char *rep, char *with) {
-    char *result; // the return string
-    char *ins;    // the next insert point
-    char *tmp;    // varies
-    int len_rep;  // length of rep (the string to remove)
-    int len_with; // length of with (the string to replace rep with)
-    int len_front; // distance between rep and end of last rep
-    int count;    // number of replacements
-
-    // sanity checks and initialization
-    if (!orig || !rep)
-        return NULL;
-    len_rep = strlen(rep);
-    if (len_rep == 0)
-        return NULL; // empty rep causes infinite loop during count
-    if (!with)
-        with = "";
-    len_with = strlen(with);
-
-    // count the number of replacements needed
-    ins = orig;
-    for (count = 0; (tmp = strstr(ins, rep)) ; ++count) {
-        ins = tmp + len_rep;
-    }
-
-    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
-
-    if (!result)
-        return NULL;
-
-    // first time through the loop, all the variable are set correctly
-    // from here on,
-    //    tmp points to the end of the result string
-    //    ins points to the next occurrence of rep in orig
-    //    orig points to the remainder of orig after "end of rep"
-    while (count--) {
-        ins = strstr(orig, rep);
-        len_front = ins - orig;
-        tmp = strncpy(tmp, orig, len_front) + len_front;
-        tmp = strcpy(tmp, with) + len_with;
-        orig += len_front + len_rep; // move to next "end of rep"
-    }
-    strcpy(tmp, orig);
-    return result;
-}
-
 void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     char *separateCommand, *firstWord, *SCommandCopy, *separateCommandParse;
-    char *savePtrFW;
+    char *savePtrFW, *wholeCommand;
     char *kwCreateAlias="createalias";
     char *kwDestroyAlias="destroyalias";
     char *kwHistory="history";
     char *kwAlias="alias";
-    char *kwChDir="cd";
-    char *restSC = inputCommandWhole;
     char *remStr=malloc(256 * sizeof(*remStr));
     char *wholeStr=calloc((256),sizeof(*wholeStr));
     char *command = malloc(20 * sizeof(*command));
@@ -82,7 +32,31 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     // char *SCommandCopy = malloc(256 * sizeof(*SCommandCopy));
     int fd;
 
+    int envCount=0;
+    while(1) {
+      if(envCount==0) {
+        wholeCommand = replace_env_vars(inputCommandWhole);
+        if(strcmp(wholeCommand, inputCommandWhole)==0)
+          break;
 
+        inputCommandWhole=wholeCommand;
+      }
+      else {
+        wholeCommand = replace_env_vars(inputCommandWhole);
+        if(strcmp(wholeCommand, inputCommandWhole)==0) {
+          free(inputCommandWhole);
+          break;
+        }
+          
+        free(inputCommandWhole);
+        inputCommandWhole=wholeCommand;
+      }
+      
+      envCount++;
+    }
+    
+    fprintf(stderr," the input is %s\n", wholeCommand);
+    char *restSC = wholeCommand;
     // When the shell sees a semicolon then it's treated
     // as a command separator
     while((separateCommand = strtok_r(restSC, ";", &restSC) )) {
@@ -130,31 +104,6 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           free(SCommandCopy);
           continue;
         }   
-        // else if(strcmp(firstWord, kwChDir)==0) {
-        //   printf("Now we change directory");
-        //   // First word is the keyword for changing directories
-        //   char *restArgs=rest_args(separateCommand);
-        //   // Run through the rest arguments and check how many spaces are there
-        //   // If there are more that 1 then there are too many arguments
-        //   char *copyRestArgs=restArgs;
-        //   int spaceCount=0;
-        //   if(restArgs!=NULL) {
-        //     restArgs=trim_whitespace(restArgs);
-        //     for(int i=0;i<=copyRestArgs[i];i++)
-        //       if(copyRestArgs[i]==' ')
-        //         spaceCount++;
-        //   }
-
-        //   if(spaceCount>1) {
-        //     fprintf(stderr,"-mysh: cd: too many arguments");
-        //   }
-        //   else {
-        //     printf("rest arguments is %s\n", restArgs);
-        //     change_directory(restArgs);
-        //   }
-        //   free(SCommandCopy);
-        //   continue;
-        // }
         else if((strcmp(firstWord, kwHistory)==0)) {
           // Check if the first word is the keyword for showing the last 20 commands
           printf("-----------------------\nTHE HISTORY OF MYSH COMMANDS :\n");
@@ -553,6 +502,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     free(command);
     free(remStr);
     free(wholeStr);
+    free(wholeCommand);
 }
 
 int begins_with_number(char *str){

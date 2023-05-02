@@ -457,3 +457,103 @@ void change_directory(List directoryList) {
     else if(chdir(directory) != 0)
         fprintf(stderr,"-mysh: cd: %s:%s",directory, strerror(errno));
 }
+
+
+char *replace_env_vars(char *inputCommandWhole) {
+    char *envVarToReplace=calloc(50,sizeof(char));
+    char *envVarToRepPlusDollar=calloc(50,sizeof(char));
+    char *envVar;
+
+    bool envVarFlag = false;
+    int i=0, k=0, j=0;
+    while(i<inputCommandWhole[i]) {
+        if(inputCommandWhole[i] == '$') {
+            envVarFlag = true;
+            envVarToRepPlusDollar[j] = inputCommandWhole[i];
+            j++;
+        }
+        else if(inputCommandWhole[i] >= 'A' && inputCommandWhole[i] <= 'Z') {
+            if(envVarFlag==true) {
+                envVarToReplace[k] = inputCommandWhole[i];
+                envVarToRepPlusDollar[j] = inputCommandWhole[i];
+                k++, j++;
+            }
+        }
+        else {
+            if(envVarFlag==true) {
+                envVarFlag=false;
+                envVar=getenv(envVarToReplace);
+                // fprintf(stderr,"so the variable is %s and the env is %s. Whole string is %s\n", envVarToReplace, envVar, str_replace(inputCommandWhole, envVarToRepPlusDollar, envVar));
+                char *toReturn=str_replace(inputCommandWhole, envVarToRepPlusDollar, envVar);
+                free(envVarToReplace);free(envVarToRepPlusDollar);
+                return toReturn;
+            }
+        }
+        i++;
+    }
+    if(envVarFlag==true) {
+        envVar=getenv(envVarToReplace);
+        // fprintf(stderr,"so the variable is %s and the env is %s. Whole string is %s\n", envVarToReplace, envVar, str_replace(inputCommandWhole, envVarToRepPlusDollar, envVar));
+        char *toReturn=str_replace(inputCommandWhole, envVarToRepPlusDollar, envVar);
+        free(envVarToReplace);free(envVarToRepPlusDollar);
+        return toReturn;
+    }
+    // No replaces were made so return the same string
+    int len = strlen(inputCommandWhole);
+    char *returnVal = calloc(len+1, sizeof(*returnVal));
+    strcpy(returnVal, inputCommandWhole);
+    free(envVarToReplace);free(envVarToRepPlusDollar);
+    return returnVal;
+}
+
+// You must free the result if result is non-NULL.
+char *str_replace(char *orig, char *rep, char *with) {
+    char *saveOrig=orig;
+    char *result; // the return string
+    char *ins;    // the next insert point
+    char *tmp;    // varies
+    int len_rep;  // length of rep (the string to remove)
+    int len_with; // length of with (the string to replace rep with)
+    int len_front; // distance between rep and end of last rep
+    int count;    // number of replacements
+
+    // sanity checks and initialization
+    if (!orig || !rep)
+        return NULL;
+    len_rep = strlen(rep);
+    if (len_rep == 0)
+        return NULL; // empty rep causes infinite loop during count
+    if (!with)
+        with = "";
+    len_with = strlen(with);
+
+    // count the number of replacements needed
+    ins = orig;
+    for (count = 0; (tmp = strstr(ins, rep)) ; ++count) {
+        ins = tmp + len_rep;
+    }
+
+    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+
+    if (!result)
+        return NULL;
+
+    // first time through the loop, all the variable are set correctly
+    // from here on,
+    //    tmp points to the end of the result string
+    //    ins points to the next occurrence of rep in orig
+    //    orig points to the remainder of orig after "end of rep"
+    while (count--) {
+        ins = strstr(orig, rep);
+        len_front = ins - orig;
+        tmp = strncpy(tmp, orig, len_front) + len_front;
+        tmp = strcpy(tmp, with) + len_with;
+        orig += len_front + len_rep; // move to next "end of rep"
+    }
+    strcpy(tmp, orig);
+
+    // if(freeFlag==true)
+    //     free(saveOrig);
+
+    return result;
+}
