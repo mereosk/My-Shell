@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "ADTList.h"
 
@@ -143,6 +144,41 @@ void print_args(List argList) {
         print_list((List)list_node_value(argList, lNode));
 		printf("\n");
     }
+}
+
+ListNode insert_alias_in_lists(List comList, ListNode prevComNode, List argList, char *alias) {
+	// Take the first word of the separate command(separated with semicolumn)
+    int aliasLength = strlen(alias);
+    char *aliasCopy = (char *)calloc(aliasLength+1, sizeof(char));
+	char *save=aliasCopy;
+    strncpy(aliasCopy, alias, aliasLength);
+	// char *restSC;
+	char *token;
+	int count=0;
+	ListNode returnNode;
+
+	// First remove the node next to previous command node 
+	print_list(comList);
+	while((token = strtok_r(aliasCopy, " ", &aliasCopy) )) {
+		printf("TOKEN IS %s\n", token);
+		if(count==0) {
+			list_insert_next(comList, prevComNode, strdup(token));
+			if(prevComNode==LIST_BOF)
+				prevComNode=list_first(comList);
+			else
+				prevComNode=list_next(comList, prevComNode);
+			list_remove_next(comList, prevComNode);
+			returnNode=list_next(comList, prevComNode);
+			printf("prev is %s and current is %s\n", (char *)list_node_value(comList,prevComNode), (char *)list_node_value(comList,returnNode));
+		}
+		else {
+			list_insert_next(argList, LIST_BOF, strdup(token));
+		}
+		count++;
+	}
+
+	free(save);
+	return returnNode;
 }
 
 ListNode list_first(List list) {

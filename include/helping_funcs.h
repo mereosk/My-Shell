@@ -8,8 +8,6 @@
 // This function parses the string
 void parse(char *inputStr, Vector historyVector, Map aliasMap);
 
-char *trim_whitespace(char *str);
-
 int begins_with_number(char *str);
 
 char *rest_args(char *str);

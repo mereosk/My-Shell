@@ -17,10 +17,7 @@ int starts_with(Pointer a,Pointer b){
     return strncmp(a, b, strlen(b));
 }
 
-// Check if a string is an alias
-bool check_alias(Map map, char *str) {
-  return (map_find(map, str)!=NULL) ? true:false;
-}
+
 
 // You must free the result if result is non-NULL.
 char *str_replace(char *orig, char *rep, char *with) {
@@ -113,6 +110,8 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             printf("\n-mysh: createalias: Correct usage: 'createalias command \"cd changed command\"'\n");
           else
             create_alias(aliasMap, rest_args(separateCommand));
+          free(SCommandCopy);
+          continue;
         }   
         else if(strcmp(firstWord, kwDestroyAlias)==0) {
           // Check if the first word is the keyword for destroying an alias
@@ -121,11 +120,15 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           else
             destroy_alias(aliasMap, rest_args(separateCommand));
           printf("destroy alias\n");
+          free(SCommandCopy);
+          continue;
         }   
         else if(strcmp(firstWord, kwAlias)==0) {
           // Check if the first word is the keyword for destroying an alias
           printf("Alias\n");
           map_print(aliasMap);
+          free(SCommandCopy);
+          continue;
         }   
         else if((strcmp(firstWord, kwHistory)==0)) {
           // Check if the first word is the keyword for showing the last 20 commands
@@ -261,8 +264,10 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               // Insert the command in the command list
               list_insert_next(comList, list_last(comList), strdup(strKeeper));
               list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
+              replace_aliases(comList, argsListAll, aliasMap);
               if(pipeFlag==true) {
                  printf("Im actually here\n");
+                               
                  execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag);
               }
               else {
@@ -280,6 +285,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
               list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
               wildcard_matching(argsListAll);
+              replace_aliases(comList, argsListAll, aliasMap);
               if(pipeFlag==true) {
                 printf("Im actually here\n");
                 execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag);
@@ -294,12 +300,14 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             }
             else if(state == OUTREDIRECT) {
               // execute_redirection(commandSave, infileSave, strKeeper, argsList, appendFlag);
+              replace_aliases(comList, argsListAll, aliasMap);
               execute_pipe(comList, argsListAll, infileSave, strKeeper, appendFlag);
               break;
             }
             else if(state == INREDIERECT) {
               printf("STR IS %s\n", strKeeper);
               // execute_redirection(commandSave, strKeeper, NULL, argsList, appendFlag);
+              replace_aliases(comList, argsListAll, aliasMap);
               execute_pipe(comList, argsListAll, strKeeper, NULL, appendFlag);
               break;
             }
@@ -521,26 +529,6 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     free(remStr);
     free(wholeStr);
     printf("Hello im in parse this is the stirng %s", separateCommand);
-}
-
-char *trim_whitespace(char *str)
-{
-  char *end;
-
-  // Trim leading space
-  while(isspace((unsigned char)*str)) str++;
-
-  if(*str == 0)  // All spaces?
-    return str;
-
-  // Trim trailing space
-  end = str + strlen(str) - 1;
-  while(end > str && isspace((unsigned char)*end)) end--;
-
-  // Write new null terminator character
-  end[1] = '\0';
-
-  return str;
 }
 
 int begins_with_number(char *str){

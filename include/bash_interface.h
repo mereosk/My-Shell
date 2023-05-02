@@ -19,3 +19,7 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
 //  and finds all the wildcards. Nextly in matches them with filenames
 //  and returns a list that is the old one plus the filenames that go matched
 void wildcard_matching(List argsListAll);
+
+void replace_aliases(List comList, List argList, Map aliasMap);
+
+char *trim_whitespace(char *str);

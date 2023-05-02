@@ -308,8 +308,8 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
                 argv[j+1] = NULL;
             }
             execvp(command, argv);
-            perror("execvp");
-            exit(5);
+            fprintf(stderr,"mysh:%s:%s\n",command,strerror(errno));
+            return;
         }  
 
         // Parent
@@ -384,4 +384,56 @@ void wildcard_matching(List argsListAll) {
         }
     }
 
+}
+
+// Check if a string is an alias
+Pointer check_alias(Map map, char *str) {
+    return map_find(map, str);
+}
+
+
+void replace_aliases(List comList, List argList, Map aliasMap) {
+    List indivArgList;
+    ListNode comlNode,argLNode, prevComNode=LIST_BOF, tempComNode=NULL, tempArgNode=NULL;
+    char *command, *result;
+
+    //Loop through commands and their arguments
+    comlNode = list_first(comList);
+    argLNode = list_first(argList);
+    while(comlNode != LIST_EOF) {
+        indivArgList=list_node_value(argList, argLNode);
+        command = list_node_value(comList, comlNode);
+        if((result=check_alias(aliasMap, command))!=NULL) {
+            result=trim_whitespace(result);
+            printf("There is the alias of %s: %s\n",command, trim_whitespace(result));
+            comlNode=insert_alias_in_lists(comList, prevComNode, indivArgList, result);
+        }
+        else { 
+            printf("There is not any alias\n");
+            comlNode=list_next(comList, comlNode);
+        }
+
+        argLNode=list_next(argList, argLNode);
+    }
+   
+}
+
+char *trim_whitespace(char *str)
+{
+  char *end;
+
+  // Trim leading space
+  while(isspace((unsigned char)*str)) str++;
+
+  if(*str == 0)  // All spaces?
+    return str;
+
+  // Trim trailing space
+  end = str + strlen(str) - 1;
+  while(end > str && isspace((unsigned char)*end)) end--;
+
+  // Write new null terminator character
+  end[1] = '\0';
+
+  return str;
 }

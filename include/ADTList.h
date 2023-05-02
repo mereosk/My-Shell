@@ -68,6 +68,8 @@ void print_list(List list);
 
 void print_args(List argList);
 
+ListNode insert_alias_in_lists(List comList, ListNode prevComNode, List argList, char *alias);
+
 ListNode list_first(List list);
 ListNode list_last(List list);
 
