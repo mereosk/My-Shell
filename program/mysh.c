@@ -1,7 +1,11 @@
+#define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+
+#include <errno.h>
 
 #include "ADTList.h"
 #include "helping_funcs.h"
@@ -16,7 +20,23 @@ void reset() {
   printf("\033[0m");
 }
 
+void catchInterupt(int signo) {
+  char buffer[64]="Catching interupt";
+  write(1, &buffer, strlen(buffer));
+}
+
 int main(int argc, char** argv) {
+  // static struct sigaction act ;
+  // act . sa_handler = SIG_IGN ; // the handler is set to IGNORE
+  // sigfillset (&( act . sa_mask ) ) ;
+  // sigaction ( SIGINT , & act , NULL ) ; // control - c
+  // sigaction ( SIGTSTP , & act , NULL ) ; // control - z
+    static struct sigaction act;
+    act.sa_handler=catchInterupt;
+    sigfillset(&(act.sa_mask));
+
+    sigaction(SIGINT, &act, NULL);
+    sigaction(SIGTSTP, &act, NULL);
 
     List mylist = list_create(NULL);
     // Initialise the history vector
@@ -29,6 +49,7 @@ int main(int argc, char** argv) {
 
     while(1) {
         cyan();
+        fflush(stdout);
         printf("\nin-mysh-now:> ");
         reset();
         // Read 256 bytes and put them in inputBuffer

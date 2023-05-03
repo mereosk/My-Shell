@@ -15,9 +15,6 @@ OBJS = $(PROGRAM)/mysh.o $(MODULES)/ADTList.o $(MODULES)/helping_funcs.o $(MODUL
 # Το εκτελέσιμο πρόγραμμα
 EXEC = $(PROGRAM)/mysh
 
-# Παράμετροι για δοκιμαστική εκτέλεση
-ARGS = 
-
 $(EXEC): $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC)
 
@@ -26,7 +23,7 @@ clean:
 		*.txt
 
 run: $(EXEC)
-	$(EXEC) $(ARGS)
+	$(EXEC)
 
 valgrind: $(EXEC)
-	valgrind --leak-check=full --track-origins=yes $(EXEC) $(ARGS)
+	valgrind --leak-check=full --track-origins=yes $(EXEC)

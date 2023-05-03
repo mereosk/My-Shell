@@ -324,7 +324,7 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
         pidArray[i] = pid;
     }
     for(int j=0; j<numOfCommands; j++) {
-        if(waitpid(pidArray[j], &status, 0 ) == -1) { perror("waitpid"); exit(1);}
+        if(waitpid(pidArray[j], &status, 0 ) == -1) { fprintf(stderr,"mysh:%s\n",strerror(errno));}
     }
     // sleep(100);
     return;
