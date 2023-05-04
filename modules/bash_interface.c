@@ -1,3 +1,4 @@
+#define _POSIX_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -207,12 +208,13 @@ void execute_command(char *command, List argsList) {
     }
 }
 
-void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, bool appendFlag) {
+void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, bool appendFlag, bool backgroundFlag) {
     int numOfCommands=list_size(commands);
     print_list(commands);
     print_args(argsListAll);
     printf("num of commands is %d\n", numOfCommands);
     int fds[2], input, output, pid, i, status, pidArray[numOfCommands], outputFD;
+    pid_t leaderPid;
     char *command;
     List argsList;
     ListNode commandlNode, argslNode;
@@ -253,6 +255,7 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
     i++, command = (char *)list_node_value(commands, commandlNode=list_next(commands, commandlNode)), \
     argsList = list_node_value(argsListAll, argslNode=list_next(commands, argslNode)) \
     ) {
+
         if((strcmp(command,"cd")==0)) {
             change_directory(argsList);
 
@@ -274,6 +277,19 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
         // Children
         if(pid == 0) {
             fprintf(stderr, "im in child with command %s \n", command);
+            // If it is the first child set it as group leader
+            if(i==0) {
+                leaderPid=getpid();
+                if(setpgid(leaderPid,0) != 0) {
+                    fprintf(stderr,"%s\n",strerror(errno));
+                }
+            }
+            else {
+                if( setpgid(getpid(), leaderPid) != 0) {
+                    fprintf(stderr,"%s\n",strerror(errno));
+                }
+            }
+            
             if(input != 0) {
                 dup2(input, 0);
                 close(input);
@@ -323,9 +339,17 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
         input=fds[READ];
         pidArray[i] = pid;
     }
-    for(int j=0; j<numOfCommands; j++) {
-        if(waitpid(pidArray[j], &status, 0 ) == -1) { fprintf(stderr,"mysh:%s\n",strerror(errno));}
+    if(backgroundFlag==false){
+        for(int j=0; j<numOfCommands; j++) {
+            if(waitpid(pidArray[j], &status, 0 ) == -1) { fprintf(stderr,"mysh:%s\n",strerror(errno));}
+        }
     }
+    else {
+        for(int j=0; j<numOfCommands; j++) {
+            if(waitpid(pidArray[j], &status, WNOHANG ) == -1) { fprintf(stderr,"mysh:%s\n",strerror(errno));}
+        }
+    }
+    
     // sleep(100);
     return;
 }

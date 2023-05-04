@@ -28,7 +28,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     char *remStr=malloc(256 * sizeof(*remStr));
     char *wholeStr=calloc((256),sizeof(*wholeStr));
     char *command = malloc(20 * sizeof(*command));
-    int intDesignator;
+    int intDesignator, backgroundFlag=false;
     // char *SCommandCopy = malloc(256 * sizeof(*SCommandCopy));
     int fd;
 
@@ -76,7 +76,10 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         //   printf("IT IS AN ALIAS and the replaced string is %s\n", sepCommandReplaced);
         // }
         printf("Separate command is %s\n",separateCommand);
-
+        // Check if the command has to execute in the background. If so
+        // mark it by turning the flag true
+        if(separateCommand[strlen(separateCommand)-1] == '&')
+          backgroundFlag=true;
         // Check if the first word is the keyword for creating an alias
         if(strcmp(firstWord, kwCreateAlias)==0){
           printf("create alias the separate command is %s\n", rest_args(separateCommand));
@@ -242,11 +245,11 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               if(pipeFlag==true) {
                  printf("Im actually here\n");
                                
-                 execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag);
+                 execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag, backgroundFlag);
               }
               else {
                 // execute_command(strKeeper, argsList);
-                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag);
+                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag, backgroundFlag);
               }
               printf("came here\n");
               // sleep(100);
@@ -256,18 +259,20 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               printf("argument have command\n");
               // Insert the last argument in the list and execute the command
               list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
-              List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
-              list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
+              if(backgroundFlag == false) {
+                List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
+                list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
+              }
               wildcard_matching(argsListAll);
               replace_aliases(comList, argsListAll, aliasMap);
               if(pipeFlag==true) {
                 printf("Im actually here\n");
-                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag);
+                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag, backgroundFlag);
               }
               else {
                 printf("CAME HEEEEEEEEEEEEEEERE\n");
                 // execute_command(commandSave, argsList);
-                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag);
+                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag, backgroundFlag);
                 printf("CAME HEEEEEEEEEEEEEEERE\n");
               }
               break;
@@ -275,14 +280,16 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             else if(state == OUTREDIRECT) {
               // execute_redirection(commandSave, infileSave, strKeeper, argsList, appendFlag);
               replace_aliases(comList, argsListAll, aliasMap);
-              execute_pipe(comList, argsListAll, infileSave, strKeeper, appendFlag);
+              execute_pipe(comList, argsListAll, infileSave, strKeeper, appendFlag, backgroundFlag);
               break;
             }
             else if(state == INREDIERECT) {
-              printf("STR IS %s\n", strKeeper);
+              char *tempInFile = (backgroundFlag == false) ? strKeeper : infileSave;
+                
+              printf("STR IS %s\n", tempInFile);
               // execute_redirection(commandSave, strKeeper, NULL, argsList, appendFlag);
               replace_aliases(comList, argsListAll, aliasMap);
-              execute_pipe(comList, argsListAll, strKeeper, NULL, appendFlag);
+              execute_pipe(comList, argsListAll, tempInFile, NULL, appendFlag, backgroundFlag);
               break;
             }
           }
