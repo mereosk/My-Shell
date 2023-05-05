@@ -145,12 +145,6 @@ void vector_print(Vector vec) {
 	for (int i = 0; i < vec->size; i++) {
 		printf("%d\t%s\n", i+1, (char *)vector_get_at(vec, i));
 	}
-    // for(VectorNode vNode=vector_first(vec);
-    // vNode != VECTOR_EOF;
-    // vNode = vector_next(vec , vNode)
-    // ) {
-    //     printf("%s\n",(char *)vector_node_value(vec, vNode));
-    // }
 }
 
 VectorNode vector_first(Vector vec) {

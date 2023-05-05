@@ -15,106 +15,7 @@
 #define READ 0
 #define WRITE 1
 
-// char ** args_construct(Vector argsList, char *command) {
-//     int sizeVec=vector_size(argsList);
-//     int i;
-//     int size = 2+sizeVec;
-//     // Var argv is where the arguments will be placed
-//     char *argv[size];
 
-//     // Check if it has arguments
-//     if(sizeVec == 0) {
-//         // It has no arguments so execute just the command
-//         argv[0] = command;
-//         argv[1] = NULL;
-//     }
-//     else {
-//         // It has arguments so execute the command with them
-//         argv[0] = command;
-//         for(i=0 ; i<sizeVec ; i++) {
-//             argv[i+1] = vector_get_at(argsList, i);
-//             printf("%s\n", argv[i+1]);
-//         }
-//         argv[i+1] = NULL;
-//     }
-
-//     return argv;
-// }
-
-void execute_redirection(char *command, char *inFile, char *outFile, List argsList, bool appendFlag){
-    int pid, status, outputFD, inputFD;
-
-    printf("infile %s and outfile %s\n",inFile, outFile);
-
-    int sizeVec=list_size(argsList);
-    int i=0;
-    int size = 2+sizeVec;
-    // Var argv is where the arguments will be placed
-    char *argv[size];
-
-    // Check if it has arguments
-    if(sizeVec == 0) {
-        // It has no arguments so execute just the command
-        argv[0] = command;
-        argv[1] = NULL;
-    }
-    else {
-        // It has arguments so execute the command with them
-        argv[0] = command;
-        for(ListNode lNode = list_first(argsList);
-        lNode != LIST_EOF;
-        lNode=list_next(argsList, lNode)) {
-            argv[i+1] = (char *)list_node_value(argsList, lNode);
-            printf("%s\n", argv[i+1]);
-            i++;
-        }
-        argv[i+1] = NULL;
-    }
-
-    
-    // Call fork system call
-    if((pid=fork()) == -1) {
-        perror("fork");
-        exit(2);
-    }
-
-    // Parent . This is where the bash command
-    // will be executed
-    if(pid !=0) {
-        printf("Im the parent process");
-        // Wait for the child
-        if(wait(&status) != pid) {
-            perror("wait");
-            exit(3);
-        }
-        printf("Child terminated");
-    }
-    else {      // Child is the reader
-        
-        if(outFile == NULL || (outFile != NULL && inFile[0] != '\0')) {
-            printf("Im here\n");
-            inputFD=open(inFile, O_RDONLY);
-            close(0);
-            dup2(inputFD,0);
-            close(inputFD);
-        }   
-        if(inFile[0] == '\0' || (outFile != NULL && inFile[0] != '\0')) {
-            printf("and here\n");
-            if(appendFlag)
-                outputFD=open(outFile, O_WRONLY|O_APPEND|O_CREAT, 0666);
-            else
-                outputFD=open(outFile, O_WRONLY|O_TRUNC|O_CREAT, 0666);
-            close(1);
-            dup2(outputFD,1);
-            close(outputFD);
-        }
-        
-            
-        execvp(command, argv);
-        perror("execlp");
-        exit(4);
-    }
-}
 
 bool create_alias(Map map, char *command) {
     char *tempStr = command;
@@ -122,15 +23,13 @@ bool create_alias(Map map, char *command) {
 
     // First character is space (from parsing)
     tempStr++;
-    printf("MY COMMAND IS %s %s\n", command, tempStr);
     // First token is the key
     key = strtok(tempStr, "\"");
-    if(key[strlen(key)-1] = ' ')
+    if(key[strlen(key)-1] == ' ')
         key[strlen(key)-1]='\0';
 
     value = strtok(NULL, "\"");
 
-    printf("Value is %s\n", value);
 
     // Insert into the alias vector
     map_insert(map, strdup(key), strdup(value));
@@ -147,77 +46,27 @@ void destroy_alias(Map map, char *command) {
 
     // Check if it has 1 argument like it should
     key = strtok(tempStr, " ");
-    printf("key is %s\n",key );
     if(strtok(0, " ")!=NULL) {
-        printf("\n-mysh: destroyalias: Correct usage: 'destroyalias myhome'\n");
+        fprintf(stderr,"\n-mysh: destroyalias: Correct usage: 'destroyalias myhome'\n");
         return;
     }
 
     // Remove the key from the map (if it exists)
     if(map_remove(map, key)==false)
-        printf("-mysh: unalias: %s not found\n", key);
+        fprintf(stderr,"-mysh: unalias: %s not found\n", key);
 }
 
-void execute_command(char *command, List argsList) {
-    printf("Im in execute the command is %s\n", command);
-    int sizeVec=list_size(argsList);
-    int i=0;
-    int size = 2+sizeVec;
-    // Var argv is where the arguments will be placed
-    char *argv[size];
 
-    // Check if it has arguments
-    if(sizeVec == 0) {
-        // It has no arguments so execute just the command
-        argv[0] = command;
-        argv[1] = NULL;
-    }
-    else {
-        // It has arguments so execute the command with them
-        argv[0] = command;
-        for(ListNode lNode = list_first(argsList);
-        lNode != LIST_EOF;
-        lNode=list_next(argsList, lNode)) {
-            argv[i+1] = (char *)list_node_value(argsList, lNode);
-            printf("%s\n", argv[i+1]);
-            i++;
-        }
-        argv[i+1] = NULL;
-    }
-
-    int pid, status;
-
-    // Call fork system call
-    if((pid=fork()) == -1) {
-        perror("fork");
-        exit(2);
-    }
-    if(pid !=0) {
-        printf("Im the parent process");
-        // Wait for the child
-        if(wait(&status) != pid) {
-            perror("wait");
-            exit(4);
-        }
-        printf("Child terminated");
-    }
-    else {      // Child is the reader
-        execvp(command, argv);
-        perror("execvp");
-        exit(5);
-    }
-}
-
-void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, bool appendFlag, bool backgroundFlag) {
+void execute_command(List commands, List argsListAll, char *inFile, char *outFile, bool appendFlag, bool backgroundFlag) {
     int numOfCommands=list_size(commands);
-    print_list(commands);
-    print_args(argsListAll);
-    printf("num of commands is %d\n", numOfCommands);
     int fds[2], input, output, pid, i, status, pidArray[numOfCommands], outputFD;
     pid_t leaderPid;
     char *command;
     List argsList;
     ListNode commandlNode, argslNode;
+    char **found;
+    glob_t gstruct;
+    int result;
 
     // Check if the first character of inFile is \0, that means
     // that there weren't an input redirection
@@ -226,25 +75,53 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
         input = 0;
     }
     else {
+        // Check if the inFile has wildcharacters
+        glob(inFile, GLOB_ERR , NULL, &gstruct);
+            
+        if(gstruct.gl_pathc == 1) {
+            found = gstruct.gl_pathv;
+            inFile=*found;
+        }
+        else if(gstruct.gl_pathc>1) {
+            fprintf(stderr,"-mysh: %s: ambiguous redirect", inFile);
+            globfree(&gstruct);
+            return;
+        }
+
         // The first input will be from inFile file
-        printf("Im here %s\n", inFile);
         if((input=open(inFile, O_RDONLY))==-1) {
             // If the inFile doesn't exist then print the errno and 
             // continue the bash (don't exit)
-            fprintf(stderr,"mysh:%s:%s\n",inFile,strerror(errno));
+            fprintf(stderr,"-mysh: %s: %s\n",inFile,strerror(errno));
             return;
         }
+        globfree(&gstruct);
+
     }
 
     // Check if the outFile is not NULL. If that is true then 
     // an output redirection must be executed
     if(outFile != NULL) {
+        // Check if the outfile has wildcharacters
+        glob(outFile, GLOB_ERR , NULL, &gstruct);
+            
+        if(gstruct.gl_pathc == 1) {
+            found = gstruct.gl_pathv;
+            outFile=*found;
+        }
+        else if(gstruct.gl_pathc>1) {
+            fprintf(stderr,"-mysh: %s: ambiguous redirect", inFile);
+            globfree(&gstruct);
+            return;
+        }
         // If the append flag is true there is an output redirection
         // that appends in the file instead of truncade it
         if(appendFlag)
             outputFD=open(outFile, O_WRONLY|O_APPEND|O_CREAT, 0666);
          else
             outputFD=open(outFile, O_WRONLY|O_TRUNC|O_CREAT, 0666);
+        
+        globfree(&gstruct);
     }
 
     // Loop through all the commands, each command is a child
@@ -262,7 +139,7 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
             return;
         }
         if(i<(numOfCommands-1)) {
-            if(pipe(fds) == -1) { perror("pipe"); exit(1);}
+            if(pipe(fds) == -1) { fprintf(stderr,"mysh:%s\n",strerror(errno)); return; }
             output = fds[WRITE];
         }
         else {
@@ -272,21 +149,22 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
                 output = 1;
         }
         
-        if((pid = fork()) == -1) { perror("fork"); exit(1); }
+        if((pid = fork()) == -1) { fprintf(stderr,"mysh:%s\n",strerror(errno)); return; }
 
         // Children
         if(pid == 0) {
-            fprintf(stderr, "im in child with command %s \n", command);
             // If it is the first child set it as group leader
-            if(i==0) {
-                leaderPid=getpid();
-                if(setpgid(leaderPid,0) != 0) {
-                    fprintf(stderr,"%s\n",strerror(errno));
+            if(backgroundFlag==true) {
+                if(i==0) {
+                    leaderPid=getpid();
+                    if(setpgid(leaderPid,0) != 0) {
+                        fprintf(stderr,"%s\n",strerror(errno));
+                    }
                 }
-            }
-            else {
-                if( setpgid(getpid(), leaderPid) != 0) {
-                    fprintf(stderr,"%s\n",strerror(errno));
+                else {
+                    if( setpgid(getpid(), leaderPid) != 0) {
+                        fprintf(stderr,"%s\n",strerror(errno));
+                    }
                 }
             }
             
@@ -302,7 +180,6 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
             }
             // Construct the argv
             int listSize=list_size(argsList);
-            fprintf(stderr, "SIZE IS %d\n\n", listSize);
             int j=0;
             int size = 2+listSize;
             // Var argv is where the arguments will be placed
@@ -313,24 +190,21 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
                 // It has no arguments so execute just the command
                 argv[0] = command;
                 argv[1] = NULL;
-                fprintf(stderr, "THAP REPEEEEEEEE\n");
             }
             else {
                 // It has arguments so execute the command with them
-                print_list(argsList);
                 argv[0] = command;
                 for(ListNode lNode = list_first(argsList);
                 lNode != LIST_EOF;
                 lNode=list_next(argsList, lNode)) {
                     argv[j+1] = (char *)list_node_value(argsList, lNode);
-                    fprintf(stderr,"%s\n", argv[j+1]);
                     j++;
                 }
                 argv[j+1] = NULL;
             }
             execvp(command, argv);
-            fprintf(stderr,"mysh:%s:%s\n",command,strerror(errno));
-            return;
+            fprintf(stderr,"-mysh:%s:%s\n",command,strerror(errno));
+            exit(EXIT_FAILURE);
         }  
 
         // Parent
@@ -341,12 +215,12 @@ void execute_pipe(List commands, List argsListAll, char *inFile, char *outFile, 
     }
     if(backgroundFlag==false){
         for(int j=0; j<numOfCommands; j++) {
-            if(waitpid(pidArray[j], &status, 0 ) == -1) { fprintf(stderr,"mysh:%s\n",strerror(errno));}
+            if(waitpid(pidArray[j], &status, WUNTRACED ) == -1) { fprintf(stderr,"-mysh:%s\n",strerror(errno));}
         }
     }
     else {
         for(int j=0; j<numOfCommands; j++) {
-            if(waitpid(pidArray[j], &status, WNOHANG ) == -1) { fprintf(stderr,"mysh:%s\n",strerror(errno));}
+            if(waitpid(pidArray[j], &status, WNOHANG ) == -1) { fprintf(stderr,"-mysh:%s\n",strerror(errno));}
         }
     }
     
@@ -374,19 +248,16 @@ void wildcard_matching(List argsListAll) {
         while(inlNode != LIST_EOF) {
             // Get the argument and search for wildcards
             arg = (char *)list_node_value(inListArg, inlNode);
-            printf("argument is %s\n",arg);
             if((result=glob(arg, GLOB_ERR , NULL, &gstruct)) != 0) {
                 if( result!=GLOB_NOMATCH )
                     fprintf(stderr,"mysh:%s\n",strerror(errno));
             }
             
             if(gstruct.gl_pathc != 0) {
-                printf("Found %zu filename matches\n", gstruct.gl_pathc);
                 found = gstruct.gl_pathv;
                 ListNode tempNode = prevNode;
                 while(*found)
                 {
-                    printf("%s\n",*found);
                     // Insert the matched filenames in the list after prev list node
                     list_insert_next(inListArg, tempNode, strdup(*found));
                     // Now tempNode is the newlly created node
@@ -396,13 +267,11 @@ void wildcard_matching(List argsListAll) {
                     else {
                         tempNode=list_next(inListArg, tempNode);
                     }
-                    printf("node value is %s\n",(char *)list_node_value(inListArg, tempNode));
                     found++;
                 }
 
                 // Remove the list node that had the wildcard
                 list_remove_next(inListArg, tempNode);
-                print_list(inListArg);
                 prevNode=tempNode;
             }
             else 
@@ -434,11 +303,9 @@ void replace_aliases(List comList, List argList, Map aliasMap) {
         command = list_node_value(comList, comlNode);
         if((result=check_alias(aliasMap, command))!=NULL) {
             result=trim_whitespace(result);
-            printf("There is the alias of %s: %s\n",command, trim_whitespace(result));
             comlNode=insert_alias_in_lists(comList, prevComNode, indivArgList, result);
         }
         else { 
-            printf("There is not any alias\n");
             comlNode=list_next(comList, comlNode);
         }
 
@@ -507,7 +374,6 @@ char *replace_env_vars(char *inputCommandWhole) {
             if(envVarFlag==true) {
                 envVarFlag=false;
                 envVar=getenv(envVarToReplace);
-                // fprintf(stderr,"so the variable is %s and the env is %s. Whole string is %s\n", envVarToReplace, envVar, str_replace(inputCommandWhole, envVarToRepPlusDollar, envVar));
                 char *toReturn=str_replace(inputCommandWhole, envVarToRepPlusDollar, envVar);
                 free(envVarToReplace);free(envVarToRepPlusDollar);
                 return toReturn;
@@ -517,7 +383,6 @@ char *replace_env_vars(char *inputCommandWhole) {
     }
     if(envVarFlag==true) {
         envVar=getenv(envVarToReplace);
-        // fprintf(stderr,"so the variable is %s and the env is %s. Whole string is %s\n", envVarToReplace, envVar, str_replace(inputCommandWhole, envVarToRepPlusDollar, envVar));
         char *toReturn=str_replace(inputCommandWhole, envVarToRepPlusDollar, envVar);
         free(envVarToReplace);free(envVarToRepPlusDollar);
         return toReturn;
@@ -532,7 +397,6 @@ char *replace_env_vars(char *inputCommandWhole) {
 
 // You must free the result if result is non-NULL.
 char *str_replace(char *orig, char *rep, char *with) {
-    char *saveOrig=orig;
     char *result; // the return string
     char *ins;    // the next insert point
     char *tmp;    // varies
@@ -575,9 +439,6 @@ char *str_replace(char *orig, char *rep, char *with) {
         orig += len_front + len_rep; // move to next "end of rep"
     }
     strcpy(tmp, orig);
-
-    // if(freeFlag==true)
-    //     free(saveOrig);
 
     return result;
 }

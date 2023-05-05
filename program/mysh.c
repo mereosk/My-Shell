@@ -8,7 +8,7 @@
 #include <errno.h>
 
 #include "ADTList.h"
-#include "helping_funcs.h"
+#include "parsing.h"
 #include "ADTVector.h"
 #include "ADTMap.h"
 
@@ -26,11 +26,7 @@ void catchInterupt(int signo) {
 }
 
 int main(int argc, char** argv) {
-  // static struct sigaction act ;
-  // act . sa_handler = SIG_IGN ; // the handler is set to IGNORE
-  // sigfillset (&( act . sa_mask ) ) ;
-  // sigaction ( SIGINT , & act , NULL ) ; // control - c
-  // sigaction ( SIGTSTP , & act , NULL ) ; // control - z
+
     static struct sigaction act;
     act.sa_handler=catchInterupt;
     sigfillset(&(act.sa_mask));
@@ -49,7 +45,6 @@ int main(int argc, char** argv) {
 
     while(1) {
         cyan();
-        fflush(stdout);
         printf("\nin-mysh-now:> ");
         reset();
         // Read 256 bytes and put them in inputBuffer
@@ -67,9 +62,6 @@ int main(int argc, char** argv) {
             if(strcmp(trimmedInputBuffer,"exit")==0)
               break;
 
-            /* writing content to stdout */
-            puts(trimmedInputBuffer);
-            // printf("size of the array is %d", sizeof(inputBuffer[0]));
             // Parse the input
             parse(trimmedInputBuffer, historyVector, aliasMap);
         }

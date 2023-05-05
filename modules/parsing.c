@@ -3,14 +3,14 @@
 #include <string.h>
 #include <ctype.h>
 #include <fcntl.h>
+#include <errno.h>
 
-#include "helping_funcs.h"
+#include "parsing.h"
 
-#define START 0
-#define HAVECOMMAND 1
+#define EXPCOMMAND 0
+#define EXPARGUMENT 1
 #define OUTREDIRECT 2
 #define INREDIERECT 3
-#define PIPE 4
 
 // Compare function that returns true if sting a starts with b
 int starts_with(Pointer a,Pointer b){
@@ -55,12 +55,15 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
       envCount++;
     }
     
-    fprintf(stderr," the input is %s\n", wholeCommand);
+    // int wholeCommandLength = strlen(wholeCommand);
+    // char *wholeCommandCopy = (char *)calloc(wholeCommandLength+1, sizeof(char));
+	  // char *save=wholeCommandCopy;
+    // strncpy(wholeCommandCopy, wholeCommand, wholeCommandLength);
+
     char *restSC = wholeCommand;
     // When the shell sees a semicolon then it's treated
     // as a command separator
     while((separateCommand = strtok_r(restSC, ";", &restSC) )) {
-        printf("Separate command is %s\n",separateCommand);
         separateCommand = trim_whitespace(separateCommand);
 
         // Take the first word of the separate command(separated with semicolumn)
@@ -69,22 +72,19 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         strncpy(SCommandCopy, separateCommand, separateCommandLength);
         firstWord = strtok_r(SCommandCopy, " ", &savePtrFW);
 
-        printf("The first command is %s\n", firstWord);
         // Check if the first word is an alias
         // if(check_alias(aliasMap, firstWord)) {
         //   char *sepCommandReplaced = str_replace(separateCommand, firstWord, map_node_value(aliasMap, map_find_node(aliasMap, firstWord)));
         //   printf("IT IS AN ALIAS and the replaced string is %s\n", sepCommandReplaced);
         // }
-        printf("Separate command is %s\n",separateCommand);
         // Check if the command has to execute in the background. If so
         // mark it by turning the flag true
         if(separateCommand[strlen(separateCommand)-1] == '&')
           backgroundFlag=true;
         // Check if the first word is the keyword for creating an alias
         if(strcmp(firstWord, kwCreateAlias)==0){
-          printf("create alias the separate command is %s\n", rest_args(separateCommand));
           if(rest_args(separateCommand) == NULL) 
-            printf("\n-mysh: createalias: Correct usage: 'createalias command \"cd changed command\"'\n");
+            fprintf(stderr,"\n-mysh: createalias: Correct usage: 'createalias command \"cd changed command\"'\n");
           else
             create_alias(aliasMap, rest_args(separateCommand));
           free(SCommandCopy);
@@ -93,16 +93,14 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         else if(strcmp(firstWord, kwDestroyAlias)==0) {
           // Check if the first word is the keyword for destroying an alias
           if(rest_args(separateCommand) == NULL) 
-            printf("\n-mysh: destroyalias: Correct usage: 'destroyalias myhome'\n");
+            fprintf(stderr,"\n-mysh: destroyalias: Correct usage: 'destroyalias myhome'\n");
           else
             destroy_alias(aliasMap, rest_args(separateCommand));
-          printf("destroy alias\n");
           free(SCommandCopy);
           continue;
         }   
         else if(strcmp(firstWord, kwAlias)==0) {
           // Check if the first word is the keyword for destroying an alias
-          printf("Alias\n");
           map_print(aliasMap);
           free(SCommandCopy);
           continue;
@@ -128,7 +126,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               subValue = vector_get_at(historyVector, intDesignator-1);
               if(subValue == NULL) {
                 // If it is NULL then there isnt an event in command line n
-                printf("\n-mysh: !%d: event not found\n", intDesignator);
+                fprintf(stderr,"\n-mysh: !%d: event not found\n", intDesignator);
                 // Delete it from the history
                 vector_remove_last(historyVector);
                 free(SCommandCopy);
@@ -142,7 +140,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               subValue = (char *)vector_get_at(historyVector, vector_size(historyVector)-abs(intDesignator)-1);
               if(subValue == NULL) {
                 // If it is NULL then there isnt an event n lines back
-                printf("\n-mysh: !%d: event not found\n", intDesignator);
+                fprintf(stderr,"\n-mysh: !%d: event not found\n", intDesignator);
                 // Delete it from the history
                 vector_remove_last(historyVector);
                 free(SCommandCopy);
@@ -156,7 +154,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             subValue = (char *)vector_get_at(historyVector, vector_size(historyVector)-2);
             if(subValue == NULL) {
                 // If it is NULL then there isnt an event n lines back
-                printf("\n-mysh: !%d: event not found\n", intDesignator);
+                fprintf(stderr,"\n-mysh: !%d: event not found\n", intDesignator);
                 // Delete it from the history
                 vector_remove_last(historyVector);
                 free(SCommandCopy);
@@ -173,7 +171,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             subValue=(char *)reverse_vector_find(historyVector, strToSearch, starts_with);
             if(subValue == NULL) {
               // If it is NULL then there isnt an event that starts with 'string'
-              printf("\n-mysh: !%s: event not found\n", strToSearch);
+              fprintf(stderr,"\n-mysh: !%s: event not found\n", strToSearch);
               // Delete it from the history
               vector_remove_last(historyVector);
               free(SCommandCopy);
@@ -193,7 +191,6 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               strcat(wholeStr, restArgs);
             }
             // If restArgs is NULL it doesn't have other arguments
-            printf("whole str is %s\n", wholeStr);
             // Substitude the last command (in history) that is !n/!-n/!!/!string 
             // with the command in subValue plus the rest arguments
             // However if the command is the same than the previous one, keep only one
@@ -207,7 +204,6 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         free(SCommandCopy);
         // Now we will parse the command using the logic of
         // state machines.
-        printf("NOW STARTS THE PARSTING\n\n");
         if(wholeStr[0] != 0)
           separateCommandParse=wholeStr;
         else
@@ -222,74 +218,49 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         // later will be used to do the redirection
         char *infileSave=calloc(256, sizeof(*infileSave));
         // The state of the machine starts expecting a command
-        int state = START;
-        // List will be for keeping the arguments of a specific command
-        List argsList = list_create(free);
+        int state = EXPCOMMAND;
         // List will be for keeping the all the arguments (List of lists)
         List argsListAll = list_create(list_destroy);
         // List will be for keeping all the commands
         List comList = list_create(free);
-        bool pipeFlag=false;
         while(1) {
           // printf("char %c%s", separateCommand[k], separateCommand);
           strKeeper[indivStr]=separateCommandParse[k];
           // com1 
           if(separateCommandParse[k] == '\0') {
             // If the state is command it is -mysh command
-            if(state == START) {
-              printf("IMG HERE\n");
+            if(state == EXPCOMMAND) {
               // Insert the command in the command list
               list_insert_next(comList, list_last(comList), strdup(strKeeper));
               list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
+              wildcard_matching(argsListAll);
               replace_aliases(comList, argsListAll, aliasMap);
-              if(pipeFlag==true) {
-                 printf("Im actually here\n");
-                               
-                 execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag, backgroundFlag);
-              }
-              else {
-                // execute_command(strKeeper, argsList);
-                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag, backgroundFlag);
-              }
-              printf("came here\n");
-              // sleep(100);
+              execute_command(comList, argsListAll, infileSave, NULL, appendFlag, backgroundFlag);
               break;
             }
-            else if(state == HAVECOMMAND) {
-              printf("argument have command\n");
+            else if(state == EXPARGUMENT) {
               // Insert the last argument in the list and execute the command
-              list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
               if(backgroundFlag == false) {
                 List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
                 list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
               }
               wildcard_matching(argsListAll);
               replace_aliases(comList, argsListAll, aliasMap);
-              if(pipeFlag==true) {
-                printf("Im actually here\n");
-                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag, backgroundFlag);
-              }
-              else {
-                printf("CAME HEEEEEEEEEEEEEEERE\n");
-                // execute_command(commandSave, argsList);
-                execute_pipe(comList, argsListAll, infileSave, NULL, appendFlag, backgroundFlag);
-                printf("CAME HEEEEEEEEEEEEEEERE\n");
-              }
+              execute_command(comList, argsListAll, infileSave, NULL, appendFlag, backgroundFlag);
               break;
             }
             else if(state == OUTREDIRECT) {
-              // execute_redirection(commandSave, infileSave, strKeeper, argsList, appendFlag);
+              wildcard_matching(argsListAll);
               replace_aliases(comList, argsListAll, aliasMap);
-              execute_pipe(comList, argsListAll, infileSave, strKeeper, appendFlag, backgroundFlag);
+              execute_command(comList, argsListAll, infileSave, strKeeper, appendFlag, backgroundFlag);
               break;
             }
             else if(state == INREDIERECT) {
               char *tempInFile = (backgroundFlag == false) ? strKeeper : infileSave;
-                
-              printf("STR IS %s\n", tempInFile);
-              // execute_redirection(commandSave, strKeeper, NULL, argsList, appendFlag);
+
+              wildcard_matching(argsListAll);
               replace_aliases(comList, argsListAll, aliasMap);
-              execute_pipe(comList, argsListAll, tempInFile, NULL, appendFlag, backgroundFlag);
+              execute_command(comList, argsListAll, tempInFile, NULL, appendFlag, backgroundFlag);
               break;
             }
           }
@@ -297,22 +268,20 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             // Without the space
             strKeeper[indivStr] = '\0';
             // Check if the stirng in strKeeper is a command
-            if(state == START) {
+            if(state == EXPCOMMAND) {
               // Save the command and search for arguments
               strcpy(commandSave, strKeeper);
-              printf("Command save is %s\n", commandSave);
               list_insert_next(comList, list_last(comList), strdup(strKeeper));
               list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
               // Change state to havecommand to search for arguments
-              state = HAVECOMMAND;
+              state = EXPARGUMENT;
               // Skip the spaces
               while(separateCommandParse[k] == ' ') {
                 k++;
               }
             }
-            else if(state == HAVECOMMAND) {
+            else if(state == EXPARGUMENT) {
               // Insert the argument in the list
-              list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
               List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
               list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
               // Skip the spaces
@@ -322,13 +291,11 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             }
             else if(state == OUTREDIRECT) {
               // Just skip the spaces and continue
-              printf("STRKEEPER %s\n",strKeeper);
               while(separateCommandParse[++k] == ' ');
               continue;
             }
             else if(state == INREDIERECT) {
               // Just skip the spaces and continue
-              printf("STRKEEPER %s\n",strKeeper);
               while(separateCommandParse[++k] == ' ');
               continue;
             }
@@ -341,10 +308,9 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           else if(separateCommandParse[k] == '>') {
             strKeeper[indivStr] = '\0';
             appendFlag=false;
-            if(state==START) {
+            if(state==EXPCOMMAND) {
               // Save the command and continue
               strcpy(commandSave, strKeeper);
-              printf("Command save is %s\n", commandSave);
               list_insert_next(comList, list_last(comList), strdup(strKeeper));
               list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
               // Change state to havecommand to search for arguments
@@ -354,15 +320,13 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             }
             // If the previous character is space then there is no need to insert
             // an argument (it was added in the previous if)
-            else if(state==HAVECOMMAND && separateCommandParse[k-1] == ' ') {
+            else if(state==EXPARGUMENT && separateCommandParse[k-1] == ' ') {
               state=OUTREDIRECT;
               // Skip the spaces
               while(separateCommandParse[++k] == ' ');
             }
-            else if(state==HAVECOMMAND && separateCommandParse[k-1] != ' ') {
-              printf("argumentssssss\n");
+            else if(state==EXPARGUMENT && separateCommandParse[k-1] != ' ') {
               // Insert the argument in the list
-              list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
               List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
               list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
               state=OUTREDIRECT;
@@ -370,13 +334,11 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               while(separateCommandParse[++k] == ' ');
             }
             else if(state==OUTREDIRECT) {
-              printf("STR KEEPER IS %s", strKeeper);
               // There are multiple redirections so
               // open or truncade all files but use only
               // use the last file
               if((fd = creat(strKeeper, 0666)) == -1) {
-                  perror("creating");
-                  exit(1);
+                fprintf(stderr,"-mysh: %s: %s\n", strKeeper, strerror(errno));
               }
               // Skip the spaces
               while(separateCommandParse[++k] == ' ') ;
@@ -384,7 +346,6 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             else if(state==INREDIERECT) {
               // Save the infile and continue
               strcpy(infileSave, strKeeper);
-              printf("Command save is %s\n", infileSave);
               state = OUTREDIRECT;
               // Skip the spaces
               while(separateCommandParse[++k] == ' ') ;
@@ -395,7 +356,6 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             // Also notice that k is the next k because we skipped at least
             // one character above
             if(separateCommandParse[k]=='>') {
-              printf("I DO APPEND\n");
               appendFlag=true;
               // Skip the spaces
               while(separateCommandParse[++k] == ' ') ;
@@ -407,10 +367,9 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           }
           else if(separateCommandParse[k] == '<') {
             strKeeper[indivStr] = '\0';
-            if(state==START) {
+            if(state==EXPCOMMAND) {
               // Save the command and continue
               strcpy(commandSave, strKeeper);
-              printf("Command save is %s\n", commandSave);
               list_insert_next(comList, list_last(comList), strdup(strKeeper));
               list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
               // Change state to havecommand to search for arguments
@@ -420,15 +379,13 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             }
             // If the previous character is space then there is no need to insert
             // an argument (it was added in the previous if)
-            else if(state==HAVECOMMAND && separateCommandParse[k-1] == ' ') {
+            else if(state==EXPARGUMENT && separateCommandParse[k-1] == ' ') {
               state=INREDIERECT;
               // Skip the spaces
               while(separateCommandParse[++k] == ' ');
             }
-            else if(state==HAVECOMMAND && separateCommandParse[k-1] != ' ') {
-              printf("argumentssssss\n");
+            else if(state==EXPARGUMENT && separateCommandParse[k-1] != ' ') {
               // Insert the argument in the list
-              list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
               List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
               list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
               state=INREDIERECT;
@@ -436,16 +393,13 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               while(separateCommandParse[++k] == ' ');
             }
             else if(state==INREDIERECT) {
-              printf("STR KEEPER IS %s", strKeeper);
               // Save the infile and continue
               strcpy(infileSave, strKeeper);
-              printf("Command save is %s\n", infileSave);
               // There are multiple redirections so
               // open or truncade all files but use only
               // use the last file
               if((fd = open(strKeeper, O_RDONLY)) == -1) {
-                  perror("creating");
-                  break;
+                  fprintf(stderr,"-mysh: %s: %s\n", strKeeper, strerror(errno));
               }
               // Skip the spaces
               while(separateCommandParse[++k] == ' ') ;
@@ -457,40 +411,35 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           }
           else if(separateCommandParse[k] == '|') {
             strKeeper[indivStr] = '\0';
-            pipeFlag=true;
-            if(state==START) {
+            if(state==EXPCOMMAND) {
               // Save the command and continue
               strcpy(commandSave, strKeeper);
-              printf("Command save is %s\n", commandSave);
               list_insert_next(comList, list_last(comList), strdup(strKeeper));
               list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
               // Change state to havecommand to search for arguments
-              state = START;
+              state = EXPCOMMAND;
               // Skip the spaces
               while(separateCommandParse[++k] == ' ');
             }
             // If the previous character is space then there is no need to insert
             // an argument (it was added in the previous if)
-            else if(state==HAVECOMMAND && separateCommandParse[k-1] == ' ') {
-              state=START;
+            else if(state==EXPARGUMENT && separateCommandParse[k-1] == ' ') {
+              state=EXPCOMMAND;
               // Skip the spaces
               while(separateCommandParse[++k] == ' ');
             }
-            else if(state==HAVECOMMAND && separateCommandParse[k-1] != ' ') {
-              printf("argumentssssss\n");
+            else if(state==EXPARGUMENT && separateCommandParse[k-1] != ' ') {
               // Insert the argument in the list
-              list_insert_next(argsList, list_last(argsList), strdup(strKeeper));
               List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
               list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
-              state=START;
+              state=EXPCOMMAND;
               // Skip the spaces
               while(separateCommandParse[++k] == ' ');
             }
             else if(state==INREDIERECT) {
               // Save the infile and continue
               strcpy(infileSave, strKeeper);
-              printf("Command save is %s\n", infileSave);
-              state = START;
+              state = EXPCOMMAND;
               // Skip the spaces
               while(separateCommandParse[++k] == ' ') ;
             }
@@ -502,7 +451,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
 
           k++; indivStr++;
         }
-        free(commandSave);free(strKeeper);free(infileSave);list_destroy(argsList);list_destroy(comList);list_destroy(argsListAll);
+        free(commandSave);free(strKeeper);free(infileSave);list_destroy(comList);list_destroy(argsListAll);
         
     }
 
@@ -510,6 +459,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     free(remStr);
     free(wholeStr);
     free(wholeCommand);
+    // free(wholeCommandCopy);
 }
 
 int begins_with_number(char *str){
@@ -553,6 +503,8 @@ char *rest_args(char *str) {
   char *strToReturn = str;
   int len = strlen(strToReturn);
 
+  printf("My command is %s\n", str);
+
   int count=0;
   // Skip the first characters
   while(*strToReturn++ != ' '){
@@ -562,7 +514,6 @@ char *rest_args(char *str) {
       return NULL;
     count++;
   }
-  printf("Str is %s\n", strToReturn);
   // Skip spaces
   while(*strToReturn++ == ' ');
   // Insert the space and the first char of the argument in the return string

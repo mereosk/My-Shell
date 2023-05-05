@@ -158,9 +158,8 @@ ListNode insert_alias_in_lists(List comList, ListNode prevComNode, List argList,
 	ListNode returnNode;
 
 	// First remove the node next to previous command node 
-	print_list(comList);
+	// print_list(comList);
 	while((token = strtok_r(aliasCopy, " ", &aliasCopy) )) {
-		printf("TOKEN IS %s\n", token);
 		if(count==0) {
 			list_insert_next(comList, prevComNode, strdup(token));
 			if(prevComNode==LIST_BOF)
@@ -169,7 +168,6 @@ ListNode insert_alias_in_lists(List comList, ListNode prevComNode, List argList,
 				prevComNode=list_next(comList, prevComNode);
 			list_remove_next(comList, prevComNode);
 			returnNode=list_next(comList, prevComNode);
-			printf("prev is %s and current is %s\n", (char *)list_node_value(comList,prevComNode), (char *)list_node_value(comList,returnNode));
 		}
 		else {
 			list_insert_next(argList, LIST_BOF, strdup(token));
