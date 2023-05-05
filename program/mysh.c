@@ -34,7 +34,6 @@ int main(int argc, char** argv) {
     sigaction(SIGINT, &act, NULL);
     sigaction(SIGTSTP, &act, NULL);
 
-    List mylist = list_create(NULL);
     // Initialise the history vector
     Vector historyVector = vector_create(0,  free);
     // Initialise the map that will keep the aliases
@@ -72,6 +71,5 @@ int main(int argc, char** argv) {
     // Free the allocated spaces left
     free(inputBuffer);
     map_destroy(aliasMap);
-    list_destroy(mylist);
     vector_destroy(historyVector);
 }

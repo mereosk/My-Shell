@@ -503,14 +503,12 @@ char *rest_args(char *str) {
   char *strToReturn = str;
   int len = strlen(strToReturn);
 
-  printf("My command is %s\n", str);
-
   int count=0;
   // Skip the first characters
   while(*strToReturn++ != ' '){
     // If the count is greater than length, the command does not
     // have arguments so return NULL
-    if(count>len)
+    if(count>=len)
       return NULL;
     count++;
   }
