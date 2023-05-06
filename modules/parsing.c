@@ -244,11 +244,15 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           if(separateCommandParse[k] == '\0' || separateCommandParse[k] == '&') {
             // If the state is command it is -mysh command
             if(state == EXPCOMMAND) {
-              // If the parser expects a command and sees & it is a syntax error
-              if(backgroundFlag == true) {
-                  fprintf(stderr, "-mysh: syntax error near unexpected token `&'\n");
-                  break;
+
+              if(separateCommandParse[k-1]!=' ' && backgroundFlag == true){
+                strKeeper[strlen(strKeeper)-1]='\0';
               }
+              // // If the parser expects a command and sees & it is a syntax error
+              // if(backgroundFlag == true) {
+              //     fprintf(stderr, "-mysh: syntax error near unexpected token `&'\n");
+              //     break;
+              // }
               // Insert the command in the command list
               list_insert_next(comList, list_last(comList), strdup(strKeeper));
               list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
@@ -262,6 +266,13 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               if(backgroundFlag == false) {
                 List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
                 list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
+              }
+              else {
+                if(separateCommandParse[k-1]!=' ' && backgroundFlag == true){
+                  strKeeper[strlen(strKeeper)-1]='\0';
+                  List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
+                  list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
+                }
               }
               wildcard_matching(argsListAll);
               replace_aliases(comList, argsListAll, aliasMap);
