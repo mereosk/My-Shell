@@ -55,12 +55,12 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
       envCount++;
     }
     
-    // int wholeCommandLength = strlen(wholeCommand);
-    // char *wholeCommandCopy = (char *)calloc(wholeCommandLength+1, sizeof(char));
-	  // char *save=wholeCommandCopy;
-    // strncpy(wholeCommandCopy, wholeCommand, wholeCommandLength);
+    int wholeCommandLength = strlen(wholeCommand);
+    char *wholeCommandCopy = (char *)calloc(wholeCommandLength+1, sizeof(char));
+	  char *save=wholeCommandCopy;
+    strncpy(wholeCommandCopy, wholeCommand, wholeCommandLength);
 
-    char *restSC = wholeCommand;
+    char *restSC = wholeCommandCopy;
     // When the shell sees a semicolon then it's treated
     // as a command separator
     while((separateCommand = strtok_r(restSC, ";", &restSC) )) {
@@ -198,8 +198,21 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               vector_remove_last(historyVector);
             else
               vector_set_at(historyVector, vector_size(historyVector)-1, strdup(wholeStr));
+            
+            char *strToBeParsed = str_replace(wholeCommand, separateCommand, wholeStr);
+            char *nonDynamicStr[strlen(strToBeParsed)+1];
+            strcpy(nonDynamicStr, strToBeParsed);
+            free(eventAfter);
+            free(SCommandCopy);
+            free(command);
+            free(remStr);
+            free(wholeStr);
+            free(wholeCommand);
+            free(save);
+            free(strToBeParsed);
+            parse(nonDynamicStr, historyVector, aliasMap);
+            return;
           }
-          free(eventAfter);
         }
         free(SCommandCopy);
         // Now we will parse the command using the logic of
@@ -459,7 +472,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     free(remStr);
     free(wholeStr);
     free(wholeCommand);
-    // free(wholeCommandCopy);
+    free(save);
 }
 
 int begins_with_number(char *str){
