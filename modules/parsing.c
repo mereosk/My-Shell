@@ -230,6 +230,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         // infileSave is where the infile will be saved so that
         // later will be used to do the redirection
         char *infileSave=calloc(256, sizeof(*infileSave));
+        char *outfileSave=calloc(256, sizeof(*outfileSave));
         // The state of the machine starts expecting a command
         int state = EXPCOMMAND;
         // List will be for keeping the all the arguments (List of lists)
@@ -240,9 +241,14 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           // printf("char %c%s", separateCommand[k], separateCommand);
           strKeeper[indivStr]=separateCommandParse[k];
           // com1 
-          if(separateCommandParse[k] == '\0') {
+          if(separateCommandParse[k] == '\0' || separateCommandParse[k] == '&') {
             // If the state is command it is -mysh command
             if(state == EXPCOMMAND) {
+              // If the parser expects a command and sees & it is a syntax error
+              if(backgroundFlag == true) {
+                  fprintf(stderr, "-mysh: syntax error near unexpected token `&'\n");
+                  break;
+              }
               // Insert the command in the command list
               list_insert_next(comList, list_last(comList), strdup(strKeeper));
               list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
@@ -252,7 +258,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               break;
             }
             else if(state == EXPARGUMENT) {
-              // Insert the last argument in the list and execute the command
+              // Insert the last argument in the list and execute the command only if it is not &
               if(backgroundFlag == false) {
                 List tempList = (List)list_node_value(argsListAll, list_last(argsListAll));
                 list_insert_next( tempList, list_last(tempList), strdup(strKeeper));
@@ -263,13 +269,29 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               break;
             }
             else if(state == OUTREDIRECT) {
+              // If there is a & and the format is -> command < infile& then the infile will be in the strKeeper but
+              // if the format is -> command < infile & then the infile will be in infileSave because there is an
+              // space between infile and &, thus the parser will save it when it sees the space
+              char *tempOutFile = (backgroundFlag == false || separateCommandParse[k-1]!=' ') ? strKeeper : outfileSave;
+              // Remove the & from the infile
+              if(separateCommandParse[k-1]!=' ' && backgroundFlag == true){
+                tempOutFile[strlen(tempOutFile)-1]='\0';
+              }
+
               wildcard_matching(argsListAll);
               replace_aliases(comList, argsListAll, aliasMap);
-              execute_command(comList, argsListAll, infileSave, strKeeper, appendFlag, backgroundFlag);
+              execute_command(comList, argsListAll, infileSave, tempOutFile, appendFlag, backgroundFlag);
               break;
             }
             else if(state == INREDIERECT) {
-              char *tempInFile = (backgroundFlag == false) ? strKeeper : infileSave;
+              // If there is a & and the format is -> command < infile& then the infile will be in the strKeeper but
+              // if the format is -> command < infile & then the infile will be in infileSave because there is an
+              // space between infile and &, thus the parser will save it when it sees the space
+              char *tempInFile = (backgroundFlag == false || separateCommandParse[k-1]!=' ') ? strKeeper : infileSave;
+              // Remove the & from the infile
+              if(separateCommandParse[k-1]!=' ' && backgroundFlag == true){
+                tempInFile[strlen(tempInFile)-1]='\0';
+              }
 
               wildcard_matching(argsListAll);
               replace_aliases(comList, argsListAll, aliasMap);
@@ -303,11 +325,15 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               }
             }
             else if(state == OUTREDIRECT) {
+              // Save the outFile
+              strcpy(outfileSave, strKeeper);
               // Just skip the spaces and continue
               while(separateCommandParse[++k] == ' ');
               continue;
             }
             else if(state == INREDIERECT) {
+              // Save the inFile
+              strcpy(infileSave, strKeeper);
               // Just skip the spaces and continue
               while(separateCommandParse[++k] == ' ');
               continue;
@@ -405,6 +431,10 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               // Skip the spaces
               while(separateCommandParse[++k] == ' ');
             }
+            else if(state==OUTREDIRECT) {
+              fprintf(stderr,"-mysh: Can't have an in redirection after an out redirection\n");
+              break;
+            }
             else if(state==INREDIERECT) {
               // Save the infile and continue
               strcpy(infileSave, strKeeper);
@@ -449,6 +479,10 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               // Skip the spaces
               while(separateCommandParse[++k] == ' ');
             }
+            else if(state==OUTREDIRECT) {
+              fprintf(stderr,"-mysh: Can't have a pipe after a redirect\n");
+              break;
+            }
             else if(state==INREDIERECT) {
               // Save the infile and continue
               strcpy(infileSave, strKeeper);
@@ -464,7 +498,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
 
           k++; indivStr++;
         }
-        free(commandSave);free(strKeeper);free(infileSave);list_destroy(comList);list_destroy(argsListAll);
+        free(commandSave);free(strKeeper);free(infileSave);free(outfileSave);list_destroy(comList);list_destroy(argsListAll);
         
     }
 

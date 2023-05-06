@@ -21,7 +21,13 @@ void reset() {
 }
 
 void catchInterupt(int signo) {
-  char buffer[64]="Catching interupt";
+  char signalStr[64];
+  char buffer[64]="\nCatching interupt ";
+  if(signo==SIGINT) 
+    strcpy(signalStr, " SIGINT (CTRL-C) signal. Exit now.\n");
+  else if(signo == SIGTSTP)
+    strcpy(signalStr, " SIGTSTP (CTRL-Z) signal.\n");
+
   write(1, &buffer, strlen(buffer));
 }
 
