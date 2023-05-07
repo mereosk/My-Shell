@@ -24,6 +24,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     char *kwCreateAlias="createalias";
     char *kwDestroyAlias="destroyalias";
     char *kwHistory="history";
+    char *kwHistory2="myHistory";
     char *kwAlias="alias";
     char *remStr=malloc(256 * sizeof(*remStr));
     char *wholeStr=calloc((256),sizeof(*wholeStr));
@@ -105,7 +106,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           free(SCommandCopy);
           continue;
         }   
-        else if((strcmp(firstWord, kwHistory)==0)) {
+        else if((strcmp(firstWord, kwHistory)==0) || (strcmp(firstWord, kwHistory2)==0)) {
           // Check if the first word is the keyword for showing the last 20 commands
           printf("-----------------------\nTHE HISTORY OF MYSH COMMANDS :\n");
           vector_print(historyVector);
