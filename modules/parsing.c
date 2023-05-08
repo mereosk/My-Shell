@@ -30,13 +30,17 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     char *wholeStr=calloc((256),sizeof(*wholeStr));
     char *command = malloc(20 * sizeof(*command));
     int intDesignator, backgroundFlag=false;
-    // char *SCommandCopy = malloc(256 * sizeof(*SCommandCopy));
     int fd;
 
+    // This variable is how many times have we replaced a env var
     int envCount=0;
     while(1) {
+      // The first time we check for we check for env vars, the inputCommandWhole
+      // is not dynamically allocated, thus we need to treat it differently than 
+      // the other times that it is actually dynamically alloced
       if(envCount==0) {
         wholeCommand = replace_env_vars(inputCommandWhole);
+        // If they are the same there are no other env vars to replace
         if(strcmp(wholeCommand, inputCommandWhole)==0)
           break;
 
@@ -44,6 +48,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
       }
       else {
         wholeCommand = replace_env_vars(inputCommandWhole);
+        // If they are the same there are no other env vars to replace
         if(strcmp(wholeCommand, inputCommandWhole)==0) {
           free(inputCommandWhole);
           break;
@@ -56,6 +61,8 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
       envCount++;
     }
     
+    // Do not pass the actual wholeCommand it the strtok_r, because there will
+    // be a problem free'ing it, so make a copy of it
     int wholeCommandLength = strlen(wholeCommand);
     char *wholeCommandCopy = (char *)calloc(wholeCommandLength+1, sizeof(char));
 	  char *save=wholeCommandCopy;
@@ -67,17 +74,13 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
     while((separateCommand = strtok_r(restSC, ";", &restSC) )) {
         separateCommand = trim_whitespace(separateCommand);
 
-        // Take the first word of the separate command(separated with semicolumn)
+        // Take the first word of the separate command. Again as before
+        // dont pass the separateCommand in strto_r but a copy of it
         int separateCommandLength = strlen(separateCommand);
         SCommandCopy = (char *)calloc(separateCommandLength+1, sizeof(char));
         strncpy(SCommandCopy, separateCommand, separateCommandLength);
         firstWord = strtok_r(SCommandCopy, " ", &savePtrFW);
 
-        // Check if the first word is an alias
-        // if(check_alias(aliasMap, firstWord)) {
-        //   char *sepCommandReplaced = str_replace(separateCommand, firstWord, map_node_value(aliasMap, map_find_node(aliasMap, firstWord)));
-        //   printf("IT IS AN ALIAS and the replaced string is %s\n", sepCommandReplaced);
-        // }
         // Check if the command has to execute in the background. If so
         // mark it by turning the flag true
         if(separateCommand[strlen(separateCommand)-1] == '&')
@@ -107,7 +110,8 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           continue;
         }   
         else if((strcmp(firstWord, kwHistory)==0) || (strcmp(firstWord, kwHistory2)==0)) {
-          // Check if the first word is the keyword for showing the last 20 commands
+          // Check if the first word is one of the keywords for showing the history of mysh
+          // which are history and myHistory
           printf("-----------------------\nTHE HISTORY OF MYSH COMMANDS :\n");
           vector_print(historyVector);
           printf("-----------------------\n");
@@ -186,7 +190,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
           if(subValue != NULL) {
             strncpy(wholeStr, subValue, strlen(subValue));
             char *restArgs = rest_args(separateCommand);
-            // If rest arguments is not NULL then it hace arguments and we 
+            // If rest arguments is not NULL then it has arguments and we 
             // have to concatenate them
             if(restArgs != NULL) {
               strcat(wholeStr, restArgs);
@@ -200,17 +204,19 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
             else
               vector_set_at(historyVector, vector_size(historyVector)-1, strdup(wholeStr));
             
+            // At this point we have the form (wholeCommand)
+            // !something arg1 arg2.. 
+            // and we have to replace the !something with the wholeStr string that is
+            // the the string the event designator gave us
+
+            // str_replcae returns a dynamicly allocated string but parse needs a statically
+            // allocated one, so copy strToBeParsed to nonDynamicStr and we are ok
             char *strToBeParsed = str_replace(wholeCommand, separateCommand, wholeStr);
             char *nonDynamicStr[strlen(strToBeParsed)+1];
             strcpy(nonDynamicStr, strToBeParsed);
-            free(eventAfter);
-            free(SCommandCopy);
-            free(command);
-            free(remStr);
-            free(wholeStr);
-            free(wholeCommand);
-            free(save);
-            free(strToBeParsed);
+            // Free and the call parse again
+            free(eventAfter);free(SCommandCopy);free(command);free(remStr);free(wholeStr);
+            free(wholeCommand);free(save);free(strToBeParsed);
             parse(nonDynamicStr, historyVector, aliasMap);
             return;
           }
@@ -231,6 +237,8 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         // infileSave is where the infile will be saved so that
         // later will be used to do the redirection
         char *infileSave=calloc(256, sizeof(*infileSave));
+        // outfileSave is where the outFile will be saved so that
+        // later will be used to do the redirection
         char *outfileSave=calloc(256, sizeof(*outfileSave));
         // The state of the machine starts expecting a command
         int state = EXPCOMMAND;
@@ -239,7 +247,6 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
         // List will be for keeping all the commands
         List comList = list_create(free);
         while(1) {
-          // printf("char %c%s", separateCommand[k], separateCommand);
           strKeeper[indivStr]=separateCommandParse[k];
           // com1 
           if(separateCommandParse[k] == '\0' || separateCommandParse[k] == '&') {
@@ -249,12 +256,7 @@ void parse(char *inputCommandWhole , Vector historyVector, Map aliasMap){
               if(separateCommandParse[k-1]!=' ' && backgroundFlag == true){
                 strKeeper[strlen(strKeeper)-1]='\0';
               }
-              // // If the parser expects a command and sees & it is a syntax error
-              // if(backgroundFlag == true) {
-              //     fprintf(stderr, "-mysh: syntax error near unexpected token `&'\n");
-              //     break;
-              // }
-              // Insert the command in the command list
+              // Insert the command in the command list and create a new arg list for this command
               list_insert_next(comList, list_last(comList), strdup(strKeeper));
               list_insert_next(argsListAll , list_last(argsListAll), list_create(free));
               wildcard_matching(argsListAll);
@@ -548,13 +550,14 @@ int begins_with_number(char *str){
     else
       break;
   }
-  
+  // It starts with the number so return it as an interger
   if(strlen(copyStr)>0) {
     retNumber = atoi(copyStr);
     free(copyStr);
     return retNumber;
   }
   free(copyStr);
+  // It does not start with a number thus return 0
   return 0;
 }
 

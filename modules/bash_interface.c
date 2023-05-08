@@ -66,7 +66,6 @@ void execute_command(List commands, List argsListAll, char *inFile, char *outFil
     ListNode commandlNode, argslNode;
     char **found;
     glob_t gstruct;
-    int result;
 
     // Check if the first character of inFile is \0, that means
     // that there weren't an input redirection
@@ -132,12 +131,14 @@ void execute_command(List commands, List argsListAll, char *inFile, char *outFil
     i++, command = (char *)list_node_value(commands, commandlNode=list_next(commands, commandlNode)), \
     argsList = list_node_value(argsListAll, argslNode=list_next(commands, argslNode)) \
     ) {
-
+        // If the command is cd the change directory
         if((strcmp(command,"cd")==0)) {
             change_directory(argsList);
 
             return;
         }
+        // If it is not the last command in pipe (if a pipe exists) use the pipe as output
+        // but if it is then use the stdout or a output file if a redirection has to happen
         if(i<(numOfCommands-1)) {
             if(pipe(fds) == -1) { fprintf(stderr,"mysh:%s\n",strerror(errno)); return; }
             output = fds[WRITE];
@@ -218,13 +219,15 @@ void execute_command(List commands, List argsListAll, char *inFile, char *outFil
             if(waitpid(pidArray[j], &status, WUNTRACED ) == -1) { fprintf(stderr,"-mysh:%s\n",strerror(errno));}
         }
     }
-    else {
-        for(int j=0; j<numOfCommands; j++) {
-            if(waitpid(pidArray[j], &status, WNOHANG ) == -1) { fprintf(stderr,"-mysh:%s\n",strerror(errno));}
-        }
-    }
+    // else {
+    //     // The processes has to be executed in the background, thus the father don't have to wait for them.
+    //     // So pass the WNOHANG as an option that demands status info immediatelly and continue. We do that
+    //     // so that the child won't be a zombie
+    //     for(int j=0; j<numOfCommands; j++) {
+    //         if(waitpid(pidArray[j], &status, WNOHANG ) == -1) { fprintf(stderr,"-mysh:%s\n",strerror(errno));}
+    //     }
+    // }
     
-    // sleep(100);
     return;
 }
 
@@ -387,7 +390,7 @@ char *replace_env_vars(char *inputCommandWhole) {
         free(envVarToReplace);free(envVarToRepPlusDollar);
         return toReturn;
     }
-    // No replaces were made so return the same string
+    // No replaces were made so return the same string but dynamically allocate it
     int len = strlen(inputCommandWhole);
     char *returnVal = calloc(len+1, sizeof(*returnVal));
     strcpy(returnVal, inputCommandWhole);
@@ -395,7 +398,6 @@ char *replace_env_vars(char *inputCommandWhole) {
     return returnVal;
 }
 
-// You must free the result if result is non-NULL.
 char *str_replace(char *orig, char *rep, char *with) {
     char *result; // the return string
     char *ins;    // the next insert point

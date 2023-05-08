@@ -21,17 +21,11 @@ void reset() {
 }
 
 void catchInterupt(int signo) {
-  char signalStr[64];
-  char buffer[64]="\nCatching interupt ";
-  if(signo==SIGINT) 
-    strcpy(signalStr, " SIGINT (CTRL-C) signal. Exit now.\n");
-  else if(signo == SIGTSTP)
-    strcpy(signalStr, " SIGTSTP (CTRL-Z) signal.\n");
-
-  write(1, &buffer, strlen(buffer));
+  // Do not do anything
 }
 
 int main(int argc, char** argv) {
+    int status, kidpid;
 
     static struct sigaction act;
     act.sa_handler=catchInterupt;
@@ -66,7 +60,8 @@ int main(int argc, char** argv) {
             // Check if the user wants to exit the shell
             if(strcmp(trimmedInputBuffer,"exit")==0)
               break;
-
+            // Check before parsing if any child has finished
+            while ((kidpid = waitpid(-1, &status, WNOHANG)) > 0) ;
             // Parse the input
             parse(trimmedInputBuffer, historyVector, aliasMap);
         }
