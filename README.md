@@ -1,4 +1,4 @@
-# **myshell Project**
+# **MyShell**
 
 ## **Project Structure**
 My project consists of three directories: `include`, `modules`, and `program`.
