@@ -1,110 +1,99 @@
-Τμήμα Πληροφορικής και Τηλεπικοινωνιών
-Κωνσταντίνος Μερεός sdi1700085
-Προγραμματισμός Συστήματος
-Εργασία 1
+# **myshell Project**
 
-Execution and Separate Compilation
+## **Project Structure**
+My project consists of three directories: `include`, `modules`, and `program`.
 
-To πρόγραμμά μου αποτελείται από 3 directories το include, modules και program. Στο φάκελο programs υπάρχει το κύριο πρόγραμμα,
-mysh.c, το οποίο περιέχει τη main συνάρτηση. Στη συνέχεια στο φάκελο modules υπάρχει το αρχείο parsing.c στο οποίο γίνεται 
-το parse των εντολών του shell μου. Μέσα από το parsing.c καλούνται λειτουργείες οι οποίες φτιάχνουν τη διεπαφή με το shell μου,
-έτσι τις έχω χωρίσει στο αρχείο bash_interface.c. Αυτό επίσης το έκανα για να μην βγει πολύ εκτενές το parsing.c. Έπειτα
-στο modules έχω τα αρχεία ADTList.c, ADTMap.c, ADTVector.c. Τα προηγούμενα είναι, αντίστοιχα, υλοποιήσεις λίστας, πίνακα κατακερμα-
-τισμού καθώς και ένας δυναμικός πίνακας. Να τονίσω ότι οι υλοποιήσεις των προηγούμενων δομών είναι "εμπνευσμένες" από τις δομές
-του κ.Χατζηκοκολάκη το 2020. Έχουν γίνει φυσικά αρκετές αλλαγές, αλλά εφόσον μπορούσαμε να χρησιμοποιήσουμε STL για τη C++ δεν
-έφτιαξα από την αρχή δομές. Επίσης να τονίσω ότι είχα ρωτήσει στο μάθημα για αυτό και μου είχατε πει ότι δεν πειράζει αν ήταν 
-μόνο οι δομές. Φυσικά όλες οι αρχικοποιήσεις των συναρτήσεων που βρίσκονται μέσα στα αρχεία που μόλις περιέγραψα βρίσκονται 
-στο φάκελο include σε αντίστοιχα αρχεία .h. Τέλος υπάρχει το Makefile (βρίσκεται εκτός των directory που περιέγραψα) το οποίο 
-με τη χρήση make μεταγλωττίζει το πρόγραμμά μου. Πιο συγκεκριμένα, παρακάτω παραθέτω τα βήματα για την εκτέλεση του προγράμματος.
+- The `program` folder contains the main program file, `mysh.c`, which includes the `main` function.
+- The `modules` folder includes:
+  - **`parsing.c`:** Handles the parsing of commands for my shell.
+  - **`bash_interface.c`:** Contains functions for creating the shell's interface, which are invoked from `parsing.c`. This separation was made to keep `parsing.c` more concise.
+  - **`ADTList.c`, `ADTMap.c`, and `ADTVector.c`:** Implementations of a list, a hash map, and a dynamic array, respectively.
+    - These data structures are inspired by the implementations from Prof. Chatzikokolakis' 2020 materials. Although I have made several modifications, I decided not to rewrite the structures entirely, as this would be similar to using STL in C++. This approach was approved during the course, as long as only the structures were reused.
 
-1. Βρίσκομαι έξω από τα directories. Δηλαδή με το ls μου εμφανίζονται τα include, modules και program.
-2. Πατάω make και εκτελείται η μεταγλώττιση του προγράμματος
-3. Πατάω ./program/mysh και εκτελείται το mysh
+- The `include` folder contains the corresponding `.h` files with function declarations for the aforementioned files.
+- Additionally, there is a `Makefile` (located outside the directories), which compiles the program using the `make` command.
 
-Να προσθέσω ότι υπάρχει δυνατότητα make run, που μεταγλωττίζει και εκτελεί το πρόγραμμα απευθείας καθώς και make valgrind που
-καλεί τον debugger αλλά υπάρχει το θέμα ότι δεν γίνειται block το σήμα SIGTSTP λόγω ιδιομορφίας του Makefile. Άρα δεν θα πρό-
-τεινα να το εκτελέσετε έτσι.
+---
 
-Parsing
+## **Execution Steps**
+1. Navigate to the project root directory (where the `include`, `modules`, and `program` folders are located).
+2. Run `make` to compile the program.
+3. Execute the shell by running `./program/mysh`.
 
-Το parsing αποφάσισα να το υλοποιήσω με την τεχνική του state machine. Δηλαδή κάθε χαρα-
-τήρας του command αλλάζει το state. Να αναφέρω εδώ ότι αρχικά η εντολή σπάει σε υποεντολές, 
-μέσω της strtok, όποτε βρίσκει το ελληνικό ερωτηματικό, έτσι όποτε αναφέρω εντολή εννοώ τις 
-υποεντολές. Έτσι λοιπόν, έχουμε 4 state 
-1. Tο EXPCOMMAND(expect command) είναι όταν περιμένουμε κάποιο command (ls, sort, ./signal κλπ)
-και το συναντάμε στην αρχή αλλά και μετά από pipes (|).
-2. Το ΕΧPARGUMENT(expect argument) είναι όταν περιμένουμε κάποιο argument. Το συναντάμε έπειτα
-από εντολές.
-3. To OUTREDIRECT είναι όταν βρίσκει το > που σημαίνει ότι θα γίνει output redirection (ls >
-outputfile). Το shell υποστηρίζει επίσης κάτι του τύπου (ls>outputfile1>outputfile2) το οποίο
-όπως το bash απλά ανοίγει το ouputfile1 και τα δεδομένα πάνε στο outputfile2. Επίσης όταν συ-
-ναντήσει το >> αλλάζει το flag appendFlag σε true, το οποίο όταν θα γίνει execute το command
-θα κάνει append τα δεδομένα στο αρχείο.
-4. Το INREDIRECT είναι όταν βρίσκει το < που σημαίνει ότι θα γίνει input redirection και έχει
-και αυτό τις παραπάνω ιδιότητες όπως το output redirect με τα παραπάνω σε αριθμό input redi-
-rections με τη μόνη διαφορά ότι τα αρχεία πρέπει να υπάρχουν.
+### **Additional Makefile Commands**
+- **`make run`:** Compiles and directly runs the program.
+- **`make valgrind`:** Runs the program with the Valgrind debugger.  
+  > Note: Due to a Makefile-specific quirk, the `SIGTSTP` signal is not blocked. Therefore, I do not recommend using this command.
 
-Όταν συναντήσει το '/0' (ή το & που θα μιλήσω παρακάνω), ανάλογα με το state θα εκτελέσει τη
-συνάρτηση execute_command την οποία θα εξηγήσω πιο διεξοδικά καθώς είναι και η πιο σημαντι-
-κή. Οι υπόλοιπες συναρτήσεις που χρησιμοποιούνται έχουν αρκετά σχόλια τα οποία τις εξηγούν καλά.
+---
 
-Execute command function
+## **Parsing**
+The parsing logic is implemented using the **state machine technique**, where each character in the command changes the state. Commands are first split into subcommands using `strtok` whenever the semicolon (`;`) is encountered. Below are the states:
 
-Στην execute_command περνάω τη λίστα με τις εντολές που έχουν γίνει parse, τη λίστα με τις λί-
-στες με τα arguments της κάθε εντολής, το input αρχείο που πρέπει να γίνει redirect όπως και 
-το αντίστοιχο output αρχείο, αυτά φυσικά αν υπάρχουν. Επίσης περνάω και δύο flags, το appendFlag 
-το οποίο εξήγησα και παραπάνω αλλά και το backgroundFlag το οποίο υποδεικνύει ότι
-το command πρέπει να εκτελεστεί στο background. Στη συνέχεια, ανοίγει αν υπάρχουν, κατάλληλα
-τα input και output αρχεία, τσεκάροντας αν έχουν wild character τους οποίους διαχειρίζεται 
-κατάλληλα. Στη συνέχεια γίνεται ένα loop στη λίστα με τις εντολές αλλά και τα αντίστοιχα
-arguments τους. Εαν ο αριθμός στο loop είναι μικρότερος από τις εντολές φτιάχνει pipes και 
-στη συνέχεια κάνει fork. Το παιδί ορίζει κατάλληλα από που θα πάρει το input και που θα 
-βγάλει το output ανάλογα σε πιο σημείο είναι στο pipe, αν έχει input από file και αν πρέπει 
-να βγάλει το ouput στο stdout ή σε κάποιο outfile. Όλα αυτά γίνονται με τα κατάλληλα dup2 και 
-close calls. Στη συνέχεια φτιάχνει τα arguments που θα περαστούν στην execvp και εκτελεί το exec. 
-Έξω από το loop γίνεται ένα for το οποίο περιμένει τα παιδια με waitpid.
+1. **EXPCOMMAND (expect command):** When waiting for a command (e.g., `ls`, `sort`, `./signal`) at the beginning or after a pipe (`|`).
+2. **EXPARGUMENT (expect argument):** When waiting for an argument after a command.
+3. **OUTREDIRECT:** Handles output redirection (`>`). The shell supports multiple redirections like `ls > output1 > output2`, where data is redirected to the last file (like in bash). If `>>` is encountered, the `appendFlag` is set to `true`, enabling appending to the file during execution.
+4. **INREDIRECT:** Handles input redirection (`<`) with similar behavior as output redirection. However, the input files must exist.
 
-Background execution
+When encountering a null character (`'\0'`) or `&`, the program executes the `execute_command` function based on the current state. This function, along with others, is thoroughly documented in the code.
 
-Μία παραλλαγή αυτού που είπα είναι όταν το backgroundFlag είναι true, το οποίο σημαίνει ότι
-οι εντολές πρέπει να εκτελεστούν στο background. Αυτό φαίρνει 1 αλλαγές, η οποία είναι ότι μέσα στο παιδί η διεργασία μπαίνει σε ξεχωριστώ process group το οποίο μας δίνει τρεις δυνατότητες.
-1. Τα σήματα ctrl+C kai ctrl+Z δεν σκοτώνουν ή κάνουν suspend όσες διεργασίες έχουν μπει στο background και τρέχουν ανεξάρτητα.
-2. Μπορούμε να κάνουμε waitpid διεργασίες ενός group
-3. Παρατήρησα ότι αν ένα background process πάει να διαβάσει από το τερματικό τη στιγμή εκτελείται μια foreground διεργασία, τότε το background process πολλές φορές διαβάζει από την είσοδο της foreground διεργασίας, κάτι που λύθηκε με τα process groups.
+---
 
-Επίσης να προσθέσω ότι πριν να γίνει το parse γίνεται ένα while loop με waitpid και option WNOHUNG, έτσι ώστε αν υπάρχει κάποια
-background εντολή που έχει τελειώσει να πάρουμε το status της και να μην γίνει ζόμπι.
+## **Execute Command Function**
+The `execute_command` function takes the following as input:
+- The list of parsed commands.
+- The list of arguments for each command.
+- Input and output redirection files (if any).
+- Two flags:
+  - **`appendFlag`:** Indicates whether to append data to the file.
+  - **`backgroundFlag`:** Indicates whether the command should execute in the background.
 
+The function processes pipes, forks child processes, and sets up appropriate file descriptors using `dup2` and `close`. It prepares arguments for each command and calls `execvp` for execution. A loop ensures all child processes are awaited using `waitpid`.
 
-History, aliases, wildcharacters, change directory και environment variables
+---
 
-Το ιστορικό είναι ένας δυναμικός πίνακας(Vector) ο οποίος αρχικοποιήται στην αρχή του προγράμματος και ενημερώνεται μετά από
-κάθε εντολή που διαβάζει το shell. Αν γράψουμε history ή myHistory τότε γίνεται print αυτός ο δυναμικός πίνακας και έτσι μπο-
-ρούμε να δούμε τις προηγούμενες εντολές. Μία αλλαγή που έκανα σε σχέση με τα ζητούμενα της άσκησης είναι να μην περιορίζω στο 
-πόσες εντολές μπορώ να θυμάμαι (20 ήταν το ζητούμενο), αλλά χρησιμοποίησα δυναμικό πίνακα ο οποίος κάθε φορά που φτάνει στα 
-όριά του διπλασιάζει τη χωρητικότητα επί δύο. Να προσθέσω επίσης, ότι αν γράψουμε μια εντολή και αυτή είναι ίδια με την τελευταία
-που είχαμε γράψει τότε δεν ξανακαταγράφεται στον δυναμικό πίνακα.
+## **Background Execution**
+When the `backgroundFlag` is `true`, commands execute in the background. This introduces one key difference:  
+- Child processes are placed in separate process groups.  
 
-Εν συνεχεία υλοποίησα τη δυνατότητα myHistory n, αλλά με τη χρήση του θαυμαστικού (!n argument). Συγκεκριμένα υπάρχει δυνατό-
-τητα 
-1. !n το οποίο αναφέρεται στην n εντολή που υπάρχει στο history Vector
-2. !-n το οποίο αναφέρεται στην εντολή n φορές πριν την τελευταία που έχουμε γράψει
-3. !! το οποίο αναφέρεται στην προηγούμενη ακριβώς εντολή
-4. !string το οποίο ψάχνει τον history vector για την εντολή η οποία αρχίζει με string και επιστρέφει την πιο πρόσφατη
+This approach provides several benefits:
+1. Signals like `Ctrl+C` and `Ctrl+Z` do not affect background processes.
+2. Background processes can be managed via `waitpid`.
+3. Prevents input conflicts between background and foreground processes by leveraging process groups.
 
-Εννοείται ότι για τα προηγούμενα υπάρχει error handling σε περίπτωση που δεν υπάρχει event αλλά και η δυνατότητα να προσθέσουμε
-arguments δηλαδή αν η 2η εντολή που γράψαμε είναι ls μπορούμε να κάνουμε !2 modules και να εκτελεστεί το ls modules.
+Additionally, before parsing, a `while` loop using `waitpid` with the `WNOHANG` option ensures completed background processes are handled, preventing zombie processes.
 
-Όσο αφορά τα aliases, υλοποιούνται με ένα Map (hash table). Έτσι όταν έχουμε createalias myhome "/home/some/thing" τότε σαν 
-key μπαίνει η συμβολοσειρά myhome και σαν value το "/home/some/thing". Το hash function που έχω υλοποιήσει είναι η djb2
-συνάρτηση και την επέλεξα, διότι είναι απλή, γρήγορη και σε γενικές γραμμές αποδοτική. Εννοείται, ότι πριν από την εκτέ-
-λεση μιας εντολή πάντα τσεκάρετε το αν υπάρχει alias.
+---
 
-Όπως είπα και πιο πάνω, υπάρχει μία λίστα η οποία περιέχει τις λίστες με τα arguments κάθε εντολής. Αυτή η λίστα με λίστες
-κάθε φορά πριν εκτελεστούν οι εντολές με την execute_command, διατρέχεται και με τη βοήθεια της glob αντικαθιστώνται τυχόν
-wildcharacters. 
+## **Features**
+### **History**
+- A dynamic vector stores the command history. Unlike the exercise requirements (limiting history to 20 commands), this implementation dynamically doubles the vector’s size when full.
+- Duplicate commands (consecutive repeats) are not added to the history.
+- **History commands supported:**
+  - `!n`: Executes the nth command in history.
+  - `!-n`: Executes the command n steps before the last one.
+  - `!!`: Executes the most recent command.
+  - `!string`: Searches for the most recent command starting with `string`.
 
-Να αναφέρω ότι η λειτουργία του change directory έχει υλοποιηθεί πλήρως με τη βολήθεια της συνάρτησης chdir. Για την
-αντιμετώπιση των μεταβλητών περιβάλλοντος γίνεται το εξής. Στην αρχή του parsing, διατρέχεται όλη η εντολή μέχρι να αντικα-
-τασταθούν όλες οι environment variables. Για αυτή τη δουλειά έχω υλοποιήσει τη συνάρτηση replace_enc_vars.
+All commands support argument addition (e.g., `!2 modules` executes `ls modules` if the 2nd command was `ls`).
+
+---
+
+### **Aliases**
+Aliases are implemented using a hash map, where the key is the alias name, and the value is the actual command.
+- Example: `createalias myhome "/home/some/thing"`.
+- The `djb2` hash function was chosen for its simplicity and performance.
+
+---
+
+### **Wildcards**
+Wildcard handling is implemented using `glob`, which processes any wildcards in the command arguments before execution.
+
+---
+
+### **Change Directory & Environment Variables**
+- **Change Directory:** Fully implemented using the `chdir` function.
+- **Environment Variables:** Before parsing, all environment variables in the command are replaced using the `replace_enc_vars` function.
+
+---
 
